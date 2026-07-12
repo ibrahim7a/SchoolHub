@@ -2,43 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/firestore_service.dart';
-import 'add_bus_screen.dart';
-import 'bus_details_screen.dart';
+import 'add_driver_screen.dart';
+import 'driver_details_screen.dart';
 
-class BusManagement extends StatefulWidget {
-  const BusManagement({super.key});
+class DriverManagement extends StatefulWidget {
+  const DriverManagement({super.key});
 
   @override
-  State<BusManagement> createState() => _BusManagementState();
+  State<DriverManagement> createState() => _DriverManagementState();
 }
 
-class _BusManagementState extends State<BusManagement> {
+class _DriverManagementState extends State<DriverManagement> {
   final FirestoreService firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Bus Management"),
+        title: const Text("Driver Management"),
         backgroundColor: Colors.blue,
       ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const AddBusScreen(),
+              builder: (context) => const AddDriverScreen(),
             ),
           );
         },
         child: const Icon(Icons.add),
       ),
-
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: firestoreService.getBuses(),
+        stream: firestoreService.getDrivers(),
         builder: (context, snapshot) {
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -48,19 +45,18 @@ class _BusManagementState extends State<BusManagement> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
-                "No Buses Added",
+                "No Drivers Added",
                 style: TextStyle(fontSize: 18),
               ),
             );
           }
 
-          final buses = snapshot.data!.docs;
+          final drivers = snapshot.data!.docs;
 
           return ListView.builder(
-            itemCount: buses.length,
+            itemCount: drivers.length,
             itemBuilder: (context, index) {
-
-              final bus = buses[index].data();
+              final driver = drivers[index].data();
 
               return Card(
                 margin: const EdgeInsets.symmetric(
@@ -68,32 +64,27 @@ class _BusManagementState extends State<BusManagement> {
                   vertical: 5,
                 ),
                 child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.person),
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BusDetailsScreen(
-                          busId: buses[index].id,
-                          busData: bus,
+                        builder: (context) => DriverDetailsScreen(
+                          driverId: drivers[index].id,
+                          driverData: driver,
                         ),
                       ),
                     );
                   },
-
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.directions_bus),
-                  ),
-
-                  title: Text(bus['busNumber'] ?? ''),
-
+                  title: Text(driver['name'] ?? ''),
                   subtitle: Text(
-                    "Driver: ${bus['driverName']}\n"
-                        "Capacity: ${bus['capacity']}",
+                    "Phone: ${driver['phone']}\nLicense: ${driver['licenseNumber']}",
                   ),
-
                   trailing: Icon(
                     Icons.circle,
-                    color: bus['status'] == "Online"
+                    color: driver['status'] == "Online"
                         ? Colors.green
                         : Colors.red,
                     size: 16,

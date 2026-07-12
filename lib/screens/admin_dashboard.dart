@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'student_management.dart';
 import '../widgets/dashboard_card.dart';
+import 'bus_management.dart';
+import 'driver_management.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -40,9 +42,30 @@ class AdminDashboard extends StatelessWidget {
             title: "Teachers",
           ),
 
-          const DashboardCard(
+          DashboardCard(
             icon: Icons.directions_bus,
             title: "Buses",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BusManagement(),
+                ),
+              );
+            },
+          ),
+
+          DashboardCard(
+            icon: Icons.drive_eta,
+            title: "Drivers",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DriverManagement(),
+                ),
+              );
+            },
           ),
 
           const DashboardCard(
