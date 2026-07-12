@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "973033853199",
+    "project_id": "schoolhub-71a00",
+    "storage_bucket": "schoolhub-71a00.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:973033853199:android:127c55a3a6ff825f02ae7a",
+        "android_client_info": {
+          "package_name": "com.example.trackmybus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdtv7YoclQGdtLENbUeIxhS5STnY1BBdY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
