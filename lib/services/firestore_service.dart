@@ -22,6 +22,10 @@ class FirestoreService {
     }, SetOptions(merge: true));
   }
 
+  Future<void> deleteBus(String busId) async {
+    await _firestore.collection('buses').doc(busId).delete();
+  }
+
   Future<void> addStudent({
     required String studentId,
     required String name,
@@ -60,6 +64,7 @@ class FirestoreService {
     required String name,
     required String phone,
     required String licenseNumber,
+    required String email,
   }) async {
     print("Before Firestores");
 
@@ -67,12 +72,28 @@ class FirestoreService {
       'name': name,
       'phone': phone,
       'licenseNumber': licenseNumber,
+      'email': email,
       'assignedBusId': '',
       'status': 'Offline',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
     print("After Firestore");
+  }
+
+  Future<void> addHomework({
+    required String subject,
+    required String title,
+    required String description,
+    required String dueDate,
+  }) async {
+    await _firestore.collection('homework').add({
+      'subject': subject,
+      'title': title,
+      'description': description,
+      'dueDate': dueDate,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> assignBusToDriver({
@@ -82,6 +103,162 @@ class FirestoreService {
     await _firestore.collection('drivers').doc(driverId).update({'assignedBusId': busId,
   });
   }
+
+  Future<void> updateBusDriver({
+    required String busId,
+    required String driverName,
+  }) async {
+    await _firestore.collection('buses').doc(busId).update({'driverName': driverName,
+    });
+  }
+
+  // ================= PARENTS =================
+
+  Future<void> addParent({
+    required String parentId,
+    required String name,
+    required String email,
+    required String phone,
+    required String address,
+  }) async {
+    await _firestore.collection('parents').doc(parentId).set({
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'address': address,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getParents() {
+    return _firestore
+        .collection('parents')
+        .orderBy('name')
+        .snapshots();
+  }
+
+  Future<void> updateParent({
+    required String parentId,
+    required String name,
+    required String email,
+    required String phone,
+    required String address,
+  }) async {
+    await _firestore.collection('parents').doc(parentId).update({
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'address': address,
+    });
+  }
+
+  Future<void> deleteParent(String parentId) async {
+    await _firestore.collection('parents').doc(parentId).delete();
+  }
+
+  Future<void> assignDriverToBus({
+    required String driverId,
+    required String driverName,
+    required String busId,
+  }) async {
+    await _firestore.collection('drivers').doc(driverId).update({'assignedBusId': busId,
+    });
+
+    await _firestore.collection('buses').doc(busId).update({'driverName': driverName,
+    });
+  }
+
+  Future<void> markAttendance({
+    required String studentId,
+    required String studentName,
+    required bool isPresent,
+}) async {
+    await _firestore.collection('attendance').add({
+      'studentId': studentId,
+      'studentName': studentName,
+      'isPresent': isPresent,
+      'date': Timestamp.now(),
+    });
+  }
+
+  Future<void> addFee({
+    required String studentId,
+    required String studentName,
+    required double totalFee,
+    required double paidFee,
+  }) async {
+    await _firestore.collection('fees').doc(studentId).set({
+      'studentName': studentName,
+      'totalFee': totalFee,
+      'paidFee': paidFee,
+      'remainingFee': totalFee - paidFee,
+      'status': paidFee >= totalFee ? 'Paid' : 'Pending',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ================= RESULTS =================
+
+  Future<void> addResult({
+    required String studentId,
+    required String studentName,
+    required String className,
+    required String subject,
+    required double marks,
+    required double totalMarks,
+  }) async {
+    final percentage = (marks / totalMarks) * 100;
+
+    String grade;
+
+    if (percentage >= 90) {
+      grade = "A+";
+    } else if (percentage >= 80) {
+      grade = "A";
+    } else if (percentage >= 70) {
+      grade = "B";
+    } else if (percentage >= 60) {
+      grade = "C";
+    } else if (percentage >= 50) {
+      grade = "D";
+    } else {
+      grade = "F";
+    }
+
+    await _firestore.collection("results").add({
+      "studentId": studentId,
+      "studentName": studentName,
+      "className": className,
+      "subject": subject,
+      "marks": marks,
+      "totalMarks": totalMarks,
+      "percentage": percentage,
+      "grade": grade,
+      "createdAt": FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentByClass(String className) {
+    return _firestore.collection("students").where('className', isEqualTo: className)
+    .orderBy('name').snapshots();
+  }
+
+  Future<void> deleteResult(String resultId) async {
+    await _firestore.collection("results").doc(resultId).delete();
+  }
+
+    Future<void> updateBus({
+      required String busId,
+      required String busNumber,
+      required int capacity,
+    }) async {
+      await _firestore.collection('buses').doc(busId).update({
+        'busNumber': busNumber,
+        'capacity': capacity,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
 
   // Get Single Bus Live Location
   Stream<DocumentSnapshot<Map<String, dynamic>>> getBusLocation(
@@ -99,6 +276,11 @@ class FirestoreService {
     return _firestore.collection('students').snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsByClass(
+      String className) {
+    return _firestore.collection('students').where('className', isEqualTo: className).snapshots();
+  }
+
   Future<void> deleteStudent(String studentId) async {
     await _firestore.collection('students').doc(studentId).delete();
   }
@@ -110,4 +292,27 @@ class FirestoreService {
   Stream<QuerySnapshot<Map<String, dynamic>>> getDrivers() {
     return _firestore.collection('drivers').snapshots();
   }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getHomework() {
+    return _firestore.collection('homework').snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getFees() {
+    return _firestore.collection('fees').snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsForDropdown() {
+    return _firestore.collection('students').orderBy('name').snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getBusDropdown() {
+    return _firestore.collection('buses').orderBy('busNumber').snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getResults() {
+    return _firestore.collection('results').orderBy('createdAt', descending: true)
+    .snapshots();
+  }
 }
+
+

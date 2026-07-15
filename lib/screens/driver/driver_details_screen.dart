@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'assign_bus_screen.dart';
+import '../assign_bus_screen.dart';
 
 class DriverDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> driverData;

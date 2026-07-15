@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'bus_tracking_screen.dart';
 import '../widgets/dashboard_card.dart';
+import 'my_child_screen.dart';
+import 'parent/parent_attendance_screen.dart';
+import 'parent/parent_homework_screen.dart';
 
 class ParentDashboard extends StatelessWidget {
   const ParentDashboard({super.key});
@@ -31,19 +34,40 @@ class ParentDashboard extends StatelessWidget {
             },
           ),
 
-          const DashboardCard(
-            icon: Icons.person_pin_circle,
-            title: "Child Location",
+          DashboardCard(
+            icon: Icons.person,
+            title: "My Child",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyChildScreen(),
+                ),
+              );
+            },
           ),
 
-          const DashboardCard(
+          DashboardCard(
             icon: Icons.check_circle,
             title: "Attendance",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ParentAttendanceScreen(),
+                ),
+              );
+            },
           ),
 
-          const DashboardCard(
+          DashboardCard(
             icon: Icons.book,
             title: "Homework",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ParentAttendanceScreen(),
+                ),
+              );
+            },
           ),
 
           const DashboardCard(

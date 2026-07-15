@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/firestore_service.dart';
 
 class DriverDashboard extends StatefulWidget {
   const DriverDashboard({super.key});
@@ -10,6 +12,13 @@ class DriverDashboard extends StatefulWidget {
   @override
   State<DriverDashboard> createState() => _DriverDashboardState();
 }
+
+final FirebaseAuth auth = FirebaseAuth.instance;
+final FirestoreService firestoreService = FirestoreService();
+
+String driverName = "";
+String busNumber = "";
+String assignedBusId = "";
 
 class _DriverDashboardState extends State<DriverDashboard> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -61,15 +70,45 @@ class _DriverDashboardState extends State<DriverDashboard> {
         "Latitude: ${position.latitude}\nLongitude: ${position.longitude}";
       });
 
-      await firestore.collection("buses").doc("bus1").set({
-        "busNumber": "TS09 AB 1234",
-        "driverName": "Mohammed Ahmed",
+      await firestore.collection("buses").doc(assignedBusId).set({
+        "busNumber": busNumber,
+        "driverName": driverName,
         "latitude": position.latitude,
         "longitude": position.longitude,
         "status": "Online",
         "updatedAt": FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     });
+  }
+
+  Future<void> loadDriverData() async {
+    final user = auth.currentUser;
+
+    if (user == null) return;
+
+    final query = await firestore
+        .collection("drivers")
+        .where("email", isEqualTo: user.email)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return;
+
+    final data = query.docs.first.data()!;
+
+    assignedBusId = data["assignedBusId"];
+    driverName = data["name"];
+
+    final bus =
+    await firestore.collection("buses").doc(assignedBusId).get();
+
+    if (bus.exists) {
+      busNumber = bus["busNumber"];
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> stopTracking() async {
@@ -81,10 +120,16 @@ class _DriverDashboardState extends State<DriverDashboard> {
       location = "Trip Ended";
     });
 
-    await firestore.collection("buses").doc("bus1").update({
+    await firestore.collection("buses").doc(assignedBusId).update({
       "status": "Offline",
       "updatedAt": FieldValue.serverTimestamp(),
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadDriverData();
   }
 
   @override
@@ -115,18 +160,18 @@ class _DriverDashboardState extends State<DriverDashboard> {
               ),
             ),
             const SizedBox(height: 20),
-            const Center(
+            Center(
               child: Text(
-                "Mohammed Ahmed",
+                driverName,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            const Center(
+            Center(
               child: Text(
-                "Bus No: TS09 AB 1234",
+                "Bus No: $busNumber",
                 style: TextStyle(fontSize: 18),
               ),
             ),

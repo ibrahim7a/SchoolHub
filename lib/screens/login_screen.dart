@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'parent_dashboard.dart';
 import 'admin_dashboard.dart';
-import 'driver_dashboard.dart';
+import 'driver/driver_dashboard.dart';
+import 'driver/driver_login_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -82,7 +83,7 @@ class LoginScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const DriverDashboard(),
+                        builder: (context) => const DriverLoginScreen(),
                       ),
                     );
                   },

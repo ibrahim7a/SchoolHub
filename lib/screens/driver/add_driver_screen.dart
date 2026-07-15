@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firestore_service.dart';
+import '../../services/firestore_service.dart';
 
 class AddDriverScreen extends StatefulWidget {
   const AddDriverScreen({super.key});
@@ -12,6 +12,7 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   final licenseController = TextEditingController();
+  final emailController = TextEditingController();
   final FirestoreService firestoreService = FirestoreService();
 
   @override
@@ -44,6 +45,14 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                 labelText: "License Number",
               ),
             ),
+
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: "Email",
+              ),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
@@ -53,6 +62,7 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                     name: nameController.text.trim(),
                     phone: phoneController.text.trim(),
                     licenseNumber: licenseController.text.trim(),
+                    email: emailController.text.trim(),
                   );
 
                   ScaffoldMessenger.of(context).showSnackBar(
