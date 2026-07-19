@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:trackmybus/screens/class_attendance.screen.dart';
 import 'student_management.dart';
 import '../widgets/dashboard_card.dart';
 import 'bus_management.dart';
@@ -11,6 +10,8 @@ import 'fees_screen.dart';
 import 'class_attendance.screen.dart';
 import 'parent/parent_management.dart';
 import 'parent/result_management.dart';
+import 'class_management_screen.dart';
+import 'teacher/teacher_management.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -45,9 +46,30 @@ class AdminDashboard extends StatelessWidget {
             },
           ),
 
-          const DashboardCard(
+          DashboardCard(
+            icon: Icons.class_,
+            title: "Class Management",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ClassManagementScreen(),
+                ),
+              );
+            },
+          ),
+
+          DashboardCard(
             icon: Icons.school,
             title: "Teachers",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TeacherManagement(),
+                ),
+              );
+            },
           ),
 
           DashboardCard(

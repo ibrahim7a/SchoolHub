@@ -4,6 +4,7 @@ import '../widgets/dashboard_card.dart';
 import 'my_child_screen.dart';
 import 'parent/parent_attendance_screen.dart';
 import 'parent/parent_homework_screen.dart';
+import 'parent/parent_result_screen.dart';
 
 class ParentDashboard extends StatelessWidget {
   const ParentDashboard({super.key});
@@ -40,7 +41,7 @@ class ParentDashboard extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const MyChildScreen(),
+                MaterialPageRoute(builder: (context) => MyChildScreen(),
                 ),
               );
             },
@@ -64,15 +65,22 @@ class ParentDashboard extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ParentAttendanceScreen(),
+                MaterialPageRoute(builder: (_) => const ParentHomeworkScreen(),
                 ),
               );
             },
           ),
 
-          const DashboardCard(
+          DashboardCard(
             icon: Icons.bar_chart,
             title: "Results",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ParentResultScreen(),
+                ),
+              );
+            },
           ),
 
           const DashboardCard(

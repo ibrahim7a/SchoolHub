@@ -17,29 +17,8 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
   String? selectedClass;
   String? selectedBusId;
-
-  final List<String> classes = const [
-    "Class 1A",
-    "Class 1B",
-    "Class 2A",
-    "Class 2B",
-    "Class 3A",
-    "Class 3B",
-    "Class 4A",
-    "Class 4B",
-    "Class 5A",
-    "Class 5B",
-    "Class 6A",
-    "Class 6B",
-    "Class 7A",
-    "Class 7B",
-    "Class 8A",
-    "Class 8B",
-    "Class 9A",
-    "Class 9B",
-    "Class 10A",
-    "Class 10B",
-  ];
+  String? selectedParentId;
+  String? selectedParentName;
 
   @override
   Widget build(BuildContext context) {
@@ -62,22 +41,36 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 15),
 
-            DropdownButtonFormField<String>(
-              value: selectedClass,
-              decoration: const InputDecoration(
-                labelText: "Select Class",
-                border: OutlineInputBorder(),
-              ),
-              items: classes.map((className) {
-                return DropdownMenuItem<String>(
-                  value: className,
-                  child: Text(className),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: firestoreService.getClasses(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+
+                final classes = snapshot.data!.docs;
+
+                return DropdownButtonFormField<String>(
+                  value: selectedClass,
+                  decoration: const InputDecoration(
+                    labelText: "Select Class",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: classes.map((doc) {
+                    final className =
+                        "${doc["className"]} ${doc["section"]}";
+
+                    return DropdownMenuItem(
+                      value: className,
+                      child: Text(className),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedClass = value;
+                    });
+                  },
                 );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedClass = value;
-                });
               },
             ),
 
@@ -115,12 +108,34 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 15),
 
-            TextField(
-              controller: _parentController,
-              decoration: const InputDecoration(
-                labelText: "Parent ID",
-                border: OutlineInputBorder(),
-              ),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: firestoreService.getParentsDropdown(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+
+                final parents = snapshot.data!.docs;
+
+                return DropdownButtonFormField<String>(
+                  value: selectedParentId,
+                  decoration: const InputDecoration(
+                    labelText: "Select Parent",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: parents.map((parent) {
+                    return DropdownMenuItem(
+                      value: parent.id, // Firebase UID
+                      child: Text(parent["name"]),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedParentId = value;
+                    });
+                  },
+                );
+              },
             ),
 
             const SizedBox(height: 25),
@@ -134,7 +149,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   if (_nameController.text.trim().isEmpty ||
                       selectedClass == null ||
                       selectedBusId == null ||
-                      _parentController.text.trim().isEmpty) {
+                      selectedParentId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("Please fill all fields"),
@@ -149,7 +164,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     name: _nameController.text.trim(),
                     className: selectedClass!,
                     busId: selectedBusId!,
-                    parentId: _parentController.text.trim(),
+                    parentId: selectedParentId!,
                   );
 
                   if (!context.mounted) return;

@@ -66,7 +66,7 @@ class FirestoreService {
     required String licenseNumber,
     required String email,
   }) async {
-    print("Before Firestores");
+    print("Before Firestore");
 
     await _firestore.collection('drivers').doc(driverId).set({
       'name': name,
@@ -86,12 +86,14 @@ class FirestoreService {
     required String title,
     required String description,
     required String dueDate,
+    required String className,
   }) async {
     await _firestore.collection('homework').add({
       'subject': subject,
       'title': title,
       'description': description,
       'dueDate': dueDate,
+      'className': className,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -99,16 +101,18 @@ class FirestoreService {
   Future<void> assignBusToDriver({
     required String driverId,
     required String busId,
-}) async {
-    await _firestore.collection('drivers').doc(driverId).update({'assignedBusId': busId,
-  });
+  }) async {
+    await _firestore.collection('drivers').doc(driverId).update({
+      'assignedBusId': busId,
+    });
   }
 
   Future<void> updateBusDriver({
     required String busId,
     required String driverName,
   }) async {
-    await _firestore.collection('buses').doc(busId).update({'driverName': driverName,
+    await _firestore.collection('buses').doc(busId).update({
+      'driverName': driverName,
     });
   }
 
@@ -161,10 +165,12 @@ class FirestoreService {
     required String driverName,
     required String busId,
   }) async {
-    await _firestore.collection('drivers').doc(driverId).update({'assignedBusId': busId,
+    await _firestore.collection('drivers').doc(driverId).update({
+      'assignedBusId': busId,
     });
 
-    await _firestore.collection('buses').doc(busId).update({'driverName': driverName,
+    await _firestore.collection('buses').doc(busId).update({
+      'driverName': driverName,
     });
   }
 
@@ -172,7 +178,7 @@ class FirestoreService {
     required String studentId,
     required String studentName,
     required bool isPresent,
-}) async {
+  }) async {
     await _firestore.collection('attendance').add({
       'studentId': studentId,
       'studentName': studentName,
@@ -208,7 +214,6 @@ class FirestoreService {
     required double totalMarks,
   }) async {
     final percentage = (marks / totalMarks) * 100;
-
     String grade;
 
     if (percentage >= 90) {
@@ -238,31 +243,100 @@ class FirestoreService {
     });
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentByClass(String className) {
-    return _firestore.collection("students").where('className', isEqualTo: className)
-    .orderBy('name').snapshots();
-  }
-
   Future<void> deleteResult(String resultId) async {
     await _firestore.collection("results").doc(resultId).delete();
   }
 
-    Future<void> updateBus({
-      required String busId,
-      required String busNumber,
-      required int capacity,
-    }) async {
-      await _firestore.collection('buses').doc(busId).update({
-        'busNumber': busNumber,
-        'capacity': capacity,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    }
+  Future<void> updateBus({
+    required String busId,
+    required String busNumber,
+    required int capacity,
+  }) async {
+    await _firestore.collection('buses').doc(busId).update({
+      'busNumber': busNumber,
+      'capacity': capacity,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ================= TEACHERS =================
+
+  Future<void> addTeacher({
+    required String teacherId,
+    required String name,
+    required String email,
+    required String phone,
+    required String subject,
+    required String className,
+  }) async {
+    await _firestore.collection("teachers").doc(teacherId).set({
+      "name": name,
+      "email": email,
+      "phone": phone,
+      "subject": subject,
+      "className": className,
+      "createdAt": FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getTeachers() {
+    return _firestore
+        .collection("teachers")
+        .orderBy("name")
+        .snapshots();
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getTeacher(
+      String teacherId) async {
+    return await _firestore
+        .collection("teachers")
+        .doc(teacherId)
+        .get();
+  }
+
+  Future<void> deleteTeacher(String teacherId) async {
+    await _firestore.collection("teachers").doc(teacherId).delete();
+  }
+
+  // ================= CLASSES =================
+
+  Future<void> addClass({
+    required String className,
+    required String section,
+  }) async {
+    await _firestore.collection("classes").add({
+      "className": className,
+      "section": section,
+      "createdAt": FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getClasses() {
+    return _firestore
+        .collection("classes")
+        .orderBy("className")
+        .snapshots();
+  }
+
+  Future<void> deleteClass(String classId) async {
+    await _firestore.collection("classes").doc(classId).delete();
+  }
+
+  Future<void> updateClass({
+    required String classId,
+    required String className,
+    required String section,
+  }) async {
+    await _firestore.collection("classes").doc(classId).update({
+      "className": className,
+      "section": section,
+    });
+  }
+
 
 
   // Get Single Bus Live Location
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getBusLocation(
-      String busId) {
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getBusLocation(String busId) {
     return _firestore.collection('buses').doc(busId).snapshots();
   }
 
@@ -271,14 +345,16 @@ class FirestoreService {
     return _firestore.collection('buses').snapshots();
   }
 
-// Get All Students
+  // Get All Students
   Stream<QuerySnapshot<Map<String, dynamic>>> getStudents() {
     return _firestore.collection('students').snapshots();
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsByClass(
-      String className) {
-    return _firestore.collection('students').where('className', isEqualTo: className).snapshots();
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsByClass(String className) {
+    return _firestore
+        .collection('students')
+        .where('className', isEqualTo: className)
+        .snapshots();
   }
 
   Future<void> deleteStudent(String studentId) async {
@@ -310,9 +386,31 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getResults() {
-    return _firestore.collection('results').orderBy('createdAt', descending: true)
-    .snapshots();
+    return _firestore
+        .collection('results')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsByParent(String parentId) {
+    return _firestore
+        .collection('students')
+        .where('parentId', isEqualTo: parentId)
+        .limit(1)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getParentsDropdown() {
+    return _firestore.collection('parents').orderBy('name').snapshots();
+  }
+
+  // Fixed: Corrected return type signature from QuerySnapshot to DocumentSnapshot
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getParent(String parentId) {
+    return _firestore.collection('parents').doc(parentId).snapshots();
+  }
+
+  // Fixed: Corrected return type signature from QuerySnapshot to DocumentSnapshot
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getBus(String busId) {
+    return _firestore.collection('buses').doc(busId).snapshots();
   }
 }
-
-

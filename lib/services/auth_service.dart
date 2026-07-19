@@ -13,7 +13,17 @@ class AuthService {
     );
   }
 
-  Future<UserCredential> createDriverAccount({
+  Future<UserCredential> createTeacher({
+    required String email,
+    required String password,
+  }) async {
+    return await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<UserCredential> createUserAccount({
     required String email,
     required String password,
   }) async {

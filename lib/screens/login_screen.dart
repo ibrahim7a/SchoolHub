@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:trackmybus/screens/teacher/teacher_login_screen.dart';
 import 'parent_dashboard.dart';
 import 'admin_dashboard.dart';
 import 'driver/driver_dashboard.dart';
 import 'driver/driver_login_screen.dart';
+import 'parent/parent_login_screen.dart';
+import 'teacher/teacher_dashboard.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -52,7 +55,7 @@ class LoginScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ParentDashboard(),
+                        builder: (context) => const ParentLoginScreen(),
                       ),
                     );
                   },
@@ -67,7 +70,14 @@ class LoginScreen extends StatelessWidget {
                 width: 250,
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TeacherLoginScreen(),
+                      )
+                    );
+                  },
                   icon: const Icon(Icons.person),
                   label: const Text("Teacher Login"),
                 ),

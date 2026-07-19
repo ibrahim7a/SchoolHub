@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trackmybus/services/firestore_service.dart';
+import 'package:trackmybus/services/auth_service.dart';
 
 class AddParentScreen extends StatefulWidget {
   const AddParentScreen({super.key});
@@ -16,6 +17,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
   final addressController = TextEditingController();
   final passwordController = TextEditingController();
   final FirestoreService firestoreService = FirestoreService();
+  final AuthService authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +100,15 @@ class _AddParentScreenState extends State<AddParentScreen> {
                     return;
                   }
 
+                  final userCredential = await authService.createUserAccount(
+                    email: emailController.text.trim(),
+                    password: passwordController.text.trim(),
+                  );
+
+                  final uid = userCredential.user!.uid;
+
                   await firestoreService.addParent(
-                    parentId: DateTime.now().millisecondsSinceEpoch.toString(),
+                    parentId: uid,
                     name: nameController.text.trim(),
                     email: emailController.text.trim(),
                     phone: phoneController.text.trim(),
