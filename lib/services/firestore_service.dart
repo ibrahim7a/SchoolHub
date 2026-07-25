@@ -34,6 +34,7 @@ class FirestoreService {
     required String parentId,
   }) async {
     await _firestore.collection('students').doc(studentId).set({
+      'studentId' : studentId,
       'name': name,
       'className': className,
       'busId': busId,
@@ -124,6 +125,7 @@ class FirestoreService {
     required String email,
     required String phone,
     required String address,
+    required String className,
   }) async {
     await _firestore.collection('parents').doc(parentId).set({
       'name': name,
@@ -131,14 +133,23 @@ class FirestoreService {
       'phone': phone,
       'address': address,
       'createdAt': FieldValue.serverTimestamp(),
+      'className': className,
     });
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getParents() {
-    return _firestore
-        .collection('parents')
-        .orderBy('name')
-        .snapshots();
+  Future<void> updateStudent({
+    required String studentId,
+    required String name,
+    required String className,
+    required String busId,
+    required String parentId,
+  }) async {
+    await _firestore.collection('students').doc(studentId).update({
+      'name': name,
+      'className': className,
+      'busId': busId,
+      'parentId': parentId,
+    });
   }
 
   Future<void> updateParent({
@@ -298,6 +309,19 @@ class FirestoreService {
     await _firestore.collection("teachers").doc(teacherId).delete();
   }
 
+  // Fixed: Corrected return type signature from QuerySnapshot to DocumentSnapshot
+  Future<DocumentSnapshot<Map<String, dynamic>>> getParent(String parentId) async {
+    return await _firestore.collection('parents').doc(parentId).get();
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getBusById(String busId) async {
+    return await _firestore.collection('buses').doc(busId).get();
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getParentById(String parentId) async {
+    return await _firestore.collection('parents').doc(parentId).get();
+  }
+
   // ================= CLASSES =================
 
   Future<void> addClass({
@@ -333,7 +357,20 @@ class FirestoreService {
     });
   }
 
-
+  Future<void> updateDriver({
+    required String driverId,
+    required String name,
+    required String phone,
+    required String email,
+    required String licenseNumber,
+  }) async {
+    await _firestore.collection("drivers").doc(driverId).update({
+      "name": name,
+      "phone": phone,
+      "email": email,
+      "licenseNumber": licenseNumber,
+    });
+  }
 
   // Get Single Bus Live Location
   Stream<DocumentSnapshot<Map<String, dynamic>>> getBusLocation(String busId) {
@@ -361,6 +398,10 @@ class FirestoreService {
     await _firestore.collection('students').doc(studentId).delete();
   }
 
+  Future<void> deleteDriver(String driverId) async {
+    await _firestore.collection('drivers').doc(driverId).delete();
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> getBuses() {
     return _firestore.collection('buses').snapshots();
   }
@@ -373,6 +414,10 @@ class FirestoreService {
     return _firestore.collection('homework').snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> getHomeworkSubjects() {
+    return _firestore.collection('teachers').snapshots();
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> getFees() {
     return _firestore.collection('fees').snapshots();
   }
@@ -383,6 +428,10 @@ class FirestoreService {
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getBusDropdown() {
     return _firestore.collection('buses').orderBy('busNumber').snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsOrdered() {
+    return _firestore.collection('students').orderBy('name').snapshots();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getResults() {
@@ -400,13 +449,19 @@ class FirestoreService {
         .snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> getHomeworkByClass(String className) {
+    return _firestore
+        .collection("homework")
+        .where("className", isEqualTo: className)
+        .snapshots();
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> getParentsDropdown() {
     return _firestore.collection('parents').orderBy('name').snapshots();
   }
 
-  // Fixed: Corrected return type signature from QuerySnapshot to DocumentSnapshot
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getParent(String parentId) {
-    return _firestore.collection('parents').doc(parentId).snapshots();
+  Stream<QuerySnapshot<Map<String, dynamic>>> getParents() {
+    return _firestore.collection('parents').orderBy('name').snapshots();
   }
 
   // Fixed: Corrected return type signature from QuerySnapshot to DocumentSnapshot

@@ -13,7 +13,6 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   final FirestoreService firestoreService = FirestoreService();
 
   final _nameController = TextEditingController();
-  final _parentController = TextEditingController();
 
   String? selectedClass;
   String? selectedBusId;
@@ -159,8 +158,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   }
 
                   await firestoreService.addStudent(
-                    studentId:
-                    DateTime.now().millisecondsSinceEpoch.toString(),
+                    studentId: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: _nameController.text.trim(),
                     className: selectedClass!,
                     busId: selectedBusId!,
@@ -176,11 +174,11 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   );
 
                   _nameController.clear();
-                  _parentController.clear();
 
                   setState(() {
                     selectedClass = null;
                     selectedBusId = null;
+                    selectedParentId = null;
                   });
                 },
               ),

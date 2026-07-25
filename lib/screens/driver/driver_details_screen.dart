@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../assign_bus_screen.dart';
+import '../../services/firestore_service.dart';
+import 'edit_driver_screen.dart';
 
 class DriverDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> driverData;
   final String driverId;
+  final FirestoreService firestoreService =
+  FirestoreService();
 
-  const DriverDetailsScreen({
+  DriverDetailsScreen({
     super.key,
     required this.driverId,
     required this.driverData,
@@ -84,7 +88,14 @@ class DriverDetailsScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // Next Step
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => EditDriverScreen(
+                            driverId: driverId, driverData: driverData,
+                        ),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.edit),
                 label: const Text("Edit Driver"),
@@ -100,8 +111,17 @@ class DriverDetailsScreen extends StatelessWidget {
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
-                  // Next Step
+                onPressed: () async {
+                  await firestoreService.deleteDriver(driverId);
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Driver Deleted Successfully"),
+                      ),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.delete),
                 label: const Text("Delete Driver"),

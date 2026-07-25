@@ -18,6 +18,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
   final passwordController = TextEditingController();
   final FirestoreService firestoreService = FirestoreService();
   final AuthService authService = AuthService();
+  String? selectedClass;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +81,40 @@ class _AddParentScreenState extends State<AddParentScreen> {
               ),
             ),
 
+            const SizedBox(height: 15),
+
+            StreamBuilder(
+              stream: firestoreService.getClasses(),
+              builder: (context, snapshot) {
+
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+
+                final classes = snapshot.data!.docs;
+
+                return DropdownButtonFormField<String>(
+                  value: selectedClass,
+                  decoration: const InputDecoration(
+                    labelText: "Select Class",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: classes.map((doc) {
+                    final className = "${doc["className"]} ${doc["section"]}";
+                    return DropdownMenuItem(
+                      value: className,
+                      child: Text(className),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedClass = value;
+                    });
+                  },
+                );
+              },
+            ),
+
             const SizedBox(height: 25),
 
             SizedBox(
@@ -91,7 +126,8 @@ class _AddParentScreenState extends State<AddParentScreen> {
                       emailController.text.isEmpty ||
                       phoneController.text.isEmpty ||
                       addressController.text.isEmpty ||
-                      passwordController.text.isEmpty) {
+                      passwordController.text.isEmpty ||
+                      selectedClass == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("Please fill all fields"),
@@ -113,6 +149,7 @@ class _AddParentScreenState extends State<AddParentScreen> {
                     email: emailController.text.trim(),
                     phone: phoneController.text.trim(),
                     address: addressController.text.trim(),
+                    className : selectedClass!,
                   );
 
                   ScaffoldMessenger.of(context).showSnackBar(

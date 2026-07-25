@@ -22,6 +22,22 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
   String? teacherSubject;
   String? teacherClass;
 
+  bool isAdmin = false;
+
+  String? selectedClass;
+  String? selectedSubject;
+
+  final List<String> subjects = [
+    "English",
+    "Mathematics",
+    "Science",
+    "Urdu",
+    "Hindi",
+    "Computer",
+    "Islamic Studies",
+    "Telugu",
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -29,8 +45,23 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
   }
 
   Future<void> loadTeacher() async {
+
     final teacherDoc =
     await firestoreService.getTeacher(currentUser!.uid);
+
+    if (teacherDoc.exists) {
+      final data = teacherDoc.data()!;
+
+      setState(() {
+        isAdmin = false;
+        teacherSubject = data["subject"];
+        teacherClass = data["className"];
+      });
+    } else {
+      setState(() {
+        isAdmin = true;
+      });
+    }
 
     final data = teacherDoc.data();
 
@@ -44,7 +75,7 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (teacherSubject == null || teacherClass == null) {
+    if (!isAdmin && (teacherSubject == null || teacherClass == null)) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -115,6 +146,13 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
+                  if (isAdmin && (selectedClass == null || selectedSubject == null)) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select Class and Subject"),
+                    ),
+                    );
+                    return;
+                  }
+
                   if (titleController.text.trim().isEmpty ||
                       descriptionController.text.trim().isEmpty ||
                       dueDateController.text.trim().isEmpty) {
@@ -127,11 +165,11 @@ class _AddHomeworkScreenState extends State<AddHomeworkScreen> {
                   }
 
                   await firestoreService.addHomework(
-                    subject: teacherSubject!,
+                    subject: isAdmin ? selectedSubject! : teacherSubject!,
                     title: titleController.text.trim(),
                     description: descriptionController.text.trim(),
                     dueDate: dueDateController.text.trim(),
-                    className: teacherClass!,
+                    className: isAdmin ? selectedClass! : teacherClass!,
                   );
 
                   if (!mounted) return;
