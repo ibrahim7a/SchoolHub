@@ -18,6 +18,21 @@ class _StudentManagementState extends State<StudentManagement> {
   final TextEditingController searchController = TextEditingController();
 
   String searchText = "";
+  String? selectedClass = "All";
+
+  final List<String> classList = [
+    "All",
+    "class 1",
+    "class 2",
+    "class 3",
+    "class 4",
+    "class 5",
+    "class 6",
+    "class 7",
+    "class 8",
+    "class 9",
+    "class 10",
+  ];
 
   @override
   void dispose() {
@@ -91,6 +106,32 @@ class _StudentManagementState extends State<StudentManagement> {
 
           const SizedBox(height: 15),
 
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: DropdownButtonFormField<String>(
+              value: selectedClass,
+              decoration: InputDecoration(
+                labelText: "Select Class",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              items: classList.map((className) {
+                return DropdownMenuItem(
+                  value: className,
+                  child: Text(className),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedClass = value!;
+                });
+              },
+            ),
+          ),
+
+          const SizedBox(height: 15),
+
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
@@ -124,7 +165,15 @@ class _StudentManagementState extends State<StudentManagement> {
                         .toString()
                         .toLowerCase();
 
-                    return name.contains(searchText);
+                    final studentClass = student["className"].toString().trim().toLowerCase();
+
+                    final matchesSearch = name.contains(searchText);
+
+                    final matchesClass =
+                        selectedClass.toLowerCase() == "all" ||
+                            studentClass == selectedClass.toLowerCase();
+
+                    return matchesSearch && matchesClass;
                   }).toList();
 
                   if (filteredStudents.isEmpty) {
