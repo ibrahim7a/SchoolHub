@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_service.dart';
+import 'add_student_screen.dart';
 
 class StudentDetailsScreen extends StatefulWidget {
   final String studentId;
@@ -158,6 +159,32 @@ class _StudentDetailsScreenState
                           },
                         ),
                         const SizedBox(height: 20),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            icon: const Icon(Icons.edit),
+                            label: const Text("Edit Student"),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AddStudentScreen(
+                                    studentId: widget.studentId,
+                                    studentData: student,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(height: 15),
 
                         SizedBox(
                           width: double.infinity,

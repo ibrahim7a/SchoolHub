@@ -18,7 +18,7 @@ class _StudentManagementState extends State<StudentManagement> {
   final TextEditingController searchController = TextEditingController();
 
   String searchText = "";
-  String? selectedClass = "All";
+  String selectedClass = "All";
 
   final List<String> classList = [
     "All",
@@ -159,7 +159,9 @@ class _StudentManagementState extends State<StudentManagement> {
                   final docs = snapshot.data!.docs;
 
                   final filteredStudents = docs.where((doc) {
+
                     final student = doc.data();
+
 
                     final name = student["name"]
                         .toString()
@@ -170,8 +172,8 @@ class _StudentManagementState extends State<StudentManagement> {
                     final matchesSearch = name.contains(searchText);
 
                     final matchesClass =
-                        selectedClass.toLowerCase() == "all" ||
-                            studentClass == selectedClass.toLowerCase();
+                    (selectedClass ?? "All").toLowerCase() == "all" ||
+                            studentClass == (selectedClass ?? "").toLowerCase();
 
                     return matchesSearch && matchesClass;
                   }).toList();
