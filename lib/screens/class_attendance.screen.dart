@@ -5,26 +5,16 @@ class ClassAttendanceScreen extends StatelessWidget {
   const ClassAttendanceScreen({super.key});
 
   final List<String> classes = const [
-    "Class 1A",
-    "Class 1B",
-    "Class 2A",
-    "Class 2B",
-    "Class 3A",
-    "Class 3B",
-    "Class 4A",
-    "Class 4B",
-    "Class 5A",
-    "Class 5B",
-    "Class 6A",
-    "Class 6B",
-    "Class 7A",
-    "Class 7B",
-    "Class 8A",
-    "Class 8B",
-    "Class 9A",
-    "Class 9B",
-    "Class 10A",
-    "Class 10B",
+    "Class 1",
+    "Class 2",
+    "Class 3",
+    "Class 4",
+    "Class 5",
+    "Class 6",
+    "Class 7",
+    "Class 8",
+    "Class 9",
+    "Class 10",
   ];
 
   @override
@@ -59,6 +49,9 @@ class ClassAttendanceScreen extends StatelessWidget {
               subtitle: const Text("Tap to take attendance"),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
+
+                print(classes[index]);
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(

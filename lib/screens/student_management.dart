@@ -22,16 +22,16 @@ class _StudentManagementState extends State<StudentManagement> {
 
   final List<String> classList = [
     "All",
-    "class 1",
-    "class 2",
-    "class 3",
-    "class 4",
-    "class 5",
-    "class 6",
-    "class 7",
-    "class 8",
-    "class 9",
-    "class 10",
+    "Class 1",
+    "Class 2",
+    "Class 3",
+    "Class 4",
+    "Class 5",
+    "Class 6",
+    "Class 7",
+    "Class 8",
+    "Class 9",
+    "Class 10",
   ];
 
   @override

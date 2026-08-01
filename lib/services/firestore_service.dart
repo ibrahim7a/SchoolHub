@@ -188,11 +188,13 @@ class FirestoreService {
   Future<void> markAttendance({
     required String studentId,
     required String studentName,
+    required String className,
     required bool isPresent,
   }) async {
     await _firestore.collection('attendance').add({
       'studentId': studentId,
       'studentName': studentName,
+      'className' : className,
       'isPresent': isPresent,
       'date': Timestamp.now(),
     });
@@ -287,6 +289,23 @@ class FirestoreService {
       "subject": subject,
       "className": className,
       "createdAt": FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateTeacher({
+    required String teacherId,
+    required String name,
+    required String email,
+    required String phone,
+    required String subject,
+    required String className,
+  }) async {
+    await _firestore.collection("teachers").doc(teacherId).update({
+      "name": name,
+      "email": email,
+      "phone": phone,
+      "subject": subject,
+      "className": className,
     });
   }
 
@@ -388,9 +407,12 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsByClass(String className) {
+
+    print("Searching for class: '$className'");
+
     return _firestore
         .collection('students')
-        .where('className', isEqualTo: className)
+        .where('className', isEqualTo: className.trim())
         .snapshots();
   }
 

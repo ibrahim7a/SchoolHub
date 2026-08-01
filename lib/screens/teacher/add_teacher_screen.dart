@@ -4,7 +4,14 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 
 class AddTeacherScreen extends StatefulWidget {
-  const AddTeacherScreen({super.key});
+  final String? teacherId;
+  final Map<String, dynamic>? teacherData;
+
+  const AddTeacherScreen({
+    super.key,
+    this.teacherId,
+    this.teacherData,
+  });
 
   @override
   State<AddTeacherScreen> createState() => _AddTeacherScreenState();
@@ -22,6 +29,20 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
   String? selectedSubject;
   String? selectedClass;
 
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.teacherData != null) {
+      nameController.text = widget.teacherData!["name"] ?? "";
+      emailController.text = widget.teacherData!["email"] ?? "";
+      phoneController.text = widget.teacherData!["phone"] ?? "";
+
+      selectedSubject = widget.teacherData!["subject"];
+      selectedClass = widget.teacherData!["className"];
+    }
+  }
+
   final List<String> subjects = [
     "English",
     "Urdu",
@@ -38,7 +59,11 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Add Teacher"),
+        title: Text(
+            widget.teacherId == null
+            ? "Add Teacher"
+            : "Edit Teacher",
+        ),
         backgroundColor: Colors.blue,
       ),
       body: SingleChildScrollView(
@@ -76,6 +101,7 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
 
             const SizedBox(height: 15),
 
+            if (widget.teacherId == null) ...[
             TextField(
               controller: passwordController,
               obscureText: true,
@@ -84,8 +110,8 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 15),
+          ],
 
             DropdownButtonFormField<String>(
               value: selectedSubject,
@@ -148,13 +174,15 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                child: const Text("Save Teacher"),
+                child: Text(
+                    widget.teacherId == null
+                    ? "Save Teacher"
+                    : "Update Teacher",
+                ),
                 onPressed: () async {
-
                   if (nameController.text.isEmpty ||
                       emailController.text.isEmpty ||
                       phoneController.text.isEmpty ||
-                      passwordController.text.isEmpty ||
                       selectedSubject == null ||
                       selectedClass == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -165,27 +193,59 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
                     return;
                   }
 
-                  final credential = await authService.createTeacher(
-                    email: emailController.text.trim(),
-                    password: passwordController.text.trim(),
-                  );
+                  // ADD TEACHER
+                  if (widget.teacherId == null) {
+                    if (passwordController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Please enter password"),
+                        ),
+                      );
+                      return;
+                    }
 
-                  await firestoreService.addTeacher(
-                    teacherId: credential.user!.uid,
-                    name: nameController.text.trim(),
-                    email: emailController.text.trim(),
-                    phone: phoneController.text.trim(),
-                    subject: selectedSubject!,
-                    className: selectedClass!,
-                  );
+                    final credential = await authService.createTeacher(
+                      email: emailController.text.trim(),
+                      password: passwordController.text.trim(),
+                    );
 
-                  if (!mounted) return;
+                    await firestoreService.addTeacher(
+                      teacherId: credential.user!.uid,
+                      name: nameController.text.trim(),
+                      email: emailController.text.trim(),
+                      phone: phoneController.text.trim(),
+                      subject: selectedSubject!,
+                      className: selectedClass!,
+                    );
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Teacher Added Successfully"),
-                    ),
-                  );
+                    if (!mounted) return;
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Teacher Added Successfully"),
+                      ),
+                    );
+                  }
+
+                  // EDIT TEACHER
+                  else {
+                    await firestoreService.updateTeacher(
+                      teacherId: widget.teacherId!,
+                      name: nameController.text.trim(),
+                      email: emailController.text.trim(),
+                      phone: phoneController.text.trim(),
+                      subject: selectedSubject!,
+                      className: selectedClass!,
+                    );
+
+                    if (!mounted) return;
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Teacher Updated Successfully"),
+                      ),
+                    );
+                  }
 
                   Navigator.pop(context);
                 },

@@ -1,35 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../services/firestore_service.dart';
 
-class AttendanceScreen extends StatelessWidget {
+class AttendanceScreen extends StatefulWidget {
   final String className;
 
-  AttendanceScreen({
+  const AttendanceScreen({
     super.key,
     required this.className,
-});
+  });
 
-  final FirestoreService firestoreService = FirestoreService();
+  @override
+  State<AttendanceScreen> createState() =>
+      _AttendanceScreenState();
+}
+
+class _AttendanceScreenState
+    extends State<AttendanceScreen> {
+
+  final FirestoreService firestoreService =
+  FirestoreService();
+
+  final Map<String, bool> attendance = {};
 
   @override
   Widget build(BuildContext context) {
+
+    print("Selected Class = ${widget.className}");
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("$className Attendance"),
+        title: Text("${widget.className} Attendance"),
         backgroundColor: Colors.blue,
+        centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: firestoreService.getStudentsByClass(className),
+
+      body: StreamBuilder<
+          QuerySnapshot<Map<String, dynamic>>>(
+        stream: firestoreService.getStudentsByClass(
+          widget.className,
+        ),
+
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+
+          print("Selected Class = ${widget.className}");
+
+          if (snapshot.hasData) {
+            print("Students = ${snapshot.data!.docs.length}");
+          }
+
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData ||
+              snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
                 "No Students Found",
@@ -40,83 +68,108 @@ class AttendanceScreen extends StatelessWidget {
 
           final students = snapshot.data!.docs;
 
-          return ListView.builder(
-            itemCount: students.length,
-            itemBuilder: (context, index) {
-              final student = students[index];
+          return Column(
+            children: [
 
-              return Card(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.person),
-                  ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: students.length,
+                  itemBuilder: (context, index) {
 
-                  title: Text(student['name']),
+                    final student = students[index];
 
-                  subtitle: Text(
-                    "Class: ${student['className']}",
-                  ),
-
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                        ),
-                        onPressed: () async {
-
-                          await firestoreService.markAttendance(
-                            studentId: student.id,
-                            studentName: student['name'],
-                            isPresent: true,
-                          );
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "${student['name']} marked Present",
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text("P"),
+                    attendance.putIfAbsent(
+                      student.id,
+                          () => true,
+                    );
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
                       ),
-
-                      const SizedBox(width: 8),
-
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
-                        onPressed: () async {
-
-                          await firestoreService.markAttendance(
-                            studentId: student.id,
-                            studentName: student['name'],
-                            isPresent: false,
-                          );
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "${student['name']} marked Absent",
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text("A"),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                        BorderRadius.circular(12),
                       ),
-                    ],
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.blue,
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        title: Text(
+                          student["name"],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        subtitle: Text(
+                          "Class : ${student["className"]}",
+                        ),
+
+                        trailing: Switch(
+                          value: attendance[student.id]!,
+                          activeColor: Colors.green,
+                          inactiveThumbColor: Colors.red,
+                          onChanged: (value) {
+                            setState(() {
+                              attendance[student.id] =
+                                  value;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
+                    icon: const Icon(Icons.save),
+                    label: const Text(
+                      "Save Attendance",
+                    ),
+                    onPressed: () async {
+                      for (final student
+                      in students) {
+                        await firestoreService
+                            .markAttendance(
+                          studentId: student.id,
+                          studentName:
+                          student["name"],
+                          className: student['className'],
+                          isPresent:
+                          attendance[student.id] ??
+                              true,
+                        );
+                      }
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Attendance Saved Successfully",
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
       ),

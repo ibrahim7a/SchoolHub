@@ -69,7 +69,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         studentId:
         DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
-        className: selectedClass!,
+        className: selectedClass!.trim(),
         busId: selectedBusId!,
         parentId: selectedParentId!,
       );
@@ -87,7 +87,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       await firestoreService.updateStudent(
         studentId: widget.studentId!,
         name: _nameController.text.trim(),
-        className: selectedClass!,
+        className: selectedClass!.trim(),
         busId: selectedBusId!,
         parentId: selectedParentId!,
       );
