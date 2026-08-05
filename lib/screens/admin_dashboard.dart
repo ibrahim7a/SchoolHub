@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:trackmybus/services/auth_service.dart';
+
 import 'student_management.dart';
 import '../widgets/dashboard_card.dart';
 import 'bus_management.dart';
 import 'driver/driver_management.dart';
-import 'attendance_screen.dart';
 import 'attendance_history_screen.dart';
 import 'homework_screen.dart';
 import 'fees_screen.dart';
@@ -12,27 +13,88 @@ import 'parent/parent_management.dart';
 import 'parent/result_management.dart';
 import 'class_management_screen.dart';
 import 'teacher/teacher_management.dart';
+import 'login_screen.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
+
+  Future<void> logout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Logout"),
+          content: const Text(
+            "Are you sure you want to logout?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text("Logout"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout != true) return;
+
+    // Firebase logout
+    await AuthService().signOut();
+
+    if (!context.mounted) return;
+
+    // Clear all previous screens and open Login Screen
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginScreen(),
+      ),
+          (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
+
       appBar: AppBar(
         title: const Text("SchoolHub Admin"),
         centerTitle: true,
         backgroundColor: Colors.blue,
         elevation: 0,
+
+        actions: [
+          IconButton(
+            tooltip: "Logout",
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              logout(context);
+            },
+          ),
+        ],
       ),
+
       body: GridView.count(
         padding: const EdgeInsets.all(20),
         crossAxisCount: 2,
         crossAxisSpacing: 15,
         mainAxisSpacing: 15,
         childAspectRatio: 1.1,
+
         children: [
+
+          // ================= STUDENTS =================
+
           DashboardCard(
             icon: Icons.people,
             title: "Students",
@@ -45,6 +107,8 @@ class AdminDashboard extends StatelessWidget {
               );
             },
           ),
+
+          // ================= CLASSES =================
 
           DashboardCard(
             icon: Icons.class_,
@@ -59,6 +123,8 @@ class AdminDashboard extends StatelessWidget {
             },
           ),
 
+          // ================= TEACHERS =================
+
           DashboardCard(
             icon: Icons.school,
             title: "Teachers",
@@ -71,6 +137,8 @@ class AdminDashboard extends StatelessWidget {
               );
             },
           ),
+
+          // ================= BUSES =================
 
           DashboardCard(
             icon: Icons.directions_bus,
@@ -85,6 +153,8 @@ class AdminDashboard extends StatelessWidget {
             },
           ),
 
+          // ================= DRIVERS =================
+
           DashboardCard(
             icon: Icons.drive_eta,
             title: "Drivers",
@@ -97,6 +167,8 @@ class AdminDashboard extends StatelessWidget {
               );
             },
           ),
+
+          // ================= PARENTS =================
 
           DashboardCard(
             icon: Icons.family_restroom,
@@ -111,6 +183,8 @@ class AdminDashboard extends StatelessWidget {
             },
           ),
 
+          // ================= ATTENDANCE =================
+
           DashboardCard(
             icon: Icons.fact_check,
             title: "Attendance",
@@ -118,11 +192,13 @@ class AdminDashboard extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (__) => const ClassAttendanceScreen(),
+                  builder: (context) => const ClassAttendanceScreen(),
                 ),
               );
             },
           ),
+
+          // ================= ATTENDANCE HISTORY =================
 
           DashboardCard(
             icon: Icons.history,
@@ -131,11 +207,13 @@ class AdminDashboard extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AttendanceHistoryScreen(),
+                  builder: (context) => const AttendanceHistoryScreen(),
                 ),
               );
             },
           ),
+
+          // ================= HOMEWORK =================
 
           DashboardCard(
             icon: Icons.menu_book,
@@ -150,6 +228,8 @@ class AdminDashboard extends StatelessWidget {
             },
           ),
 
+          // ================= RESULTS =================
+
           DashboardCard(
             icon: Icons.assessment,
             title: "Results",
@@ -162,6 +242,8 @@ class AdminDashboard extends StatelessWidget {
               );
             },
           ),
+
+          // ================= FEES =================
 
           DashboardCard(
             icon: Icons.currency_rupee,
@@ -180,4 +262,3 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 }
-

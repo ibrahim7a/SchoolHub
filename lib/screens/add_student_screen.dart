@@ -64,46 +64,53 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       return;
     }
 
-    if (widget.studentId == null) {
-      await firestoreService.addStudent(
-        studentId:
-        DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        className: selectedClass!.trim(),
-        busId: selectedBusId!,
-        parentId: selectedParentId!,
-      );
+    try {
+      if (widget.studentId == null) {
+        await firestoreService.addStudent(
+          studentId:
+          DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text.trim(),
+          className: selectedClass!.trim(),
+          busId: selectedBusId!,
+          parentId: selectedParentId!,
+        );
 
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Student Added Successfully"),
+          ),
+        );
+      } else {
+        await firestoreService.updateStudent(
+          studentId: widget.studentId!,
+          name: _nameController.text.trim(),
+          className: selectedClass!.trim(),
+          busId: selectedBusId!,
+          parentId: selectedParentId!,
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Student Updated Successfully"),
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Student Added Successfully",
-          ),
-        ),
-      );
-    } else {
-      await firestoreService.updateStudent(
-        studentId: widget.studentId!,
-        name: _nameController.text.trim(),
-        className: selectedClass!.trim(),
-        busId: selectedBusId!,
-        parentId: selectedParentId!,
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Student Updated Successfully",
-          ),
+        SnackBar(
+          content: Text("Error: $e"),
         ),
       );
     }
-
-    Navigator.pop(context);
   }
 
   @override
@@ -117,10 +124,15 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         ),
         backgroundColor: Colors.blue,
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+
+            // =========================
+            // STUDENT NAME
+            // =========================
 
             TextField(
               controller: _nameController,
@@ -132,30 +144,72 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 15),
 
+            // =========================
+            // CLASS
+            // =========================
+
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getClasses(),
               builder: (context, snapshot) {
 
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
 
+                if (snapshot.hasError) {
+                  return Text(
+                    "Error loading classes: ${snapshot.error}",
+                  );
+                }
+
+                if (!snapshot.hasData ||
+                    snapshot.data!.docs.isEmpty) {
+                  return const Text(
+                    "No Classes Found",
+                  );
+                }
+
+                // Remove duplicate classes
+                final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
+                uniqueClasses = {};
+
+                for (final doc in snapshot.data!.docs) {
+                  final data = doc.data();
+
+                  final className =
+                  "${data["className"] ?? ""} ${data["section"] ?? ""}"
+                      .trim();
+
+                  if (className.isNotEmpty) {
+                    uniqueClasses[className] = doc;
+                  }
+                }
+
+                final classNames =
+                uniqueClasses.keys.toList();
+
+                // Make sure selected value exists
+                final safeSelectedClass =
+                classNames.contains(selectedClass)
+                    ? selectedClass
+                    : null;
+
                 return DropdownButtonFormField<String>(
-                  value: selectedClass,
+                  value: safeSelectedClass,
+
                   decoration: const InputDecoration(
                     labelText: "Select Class",
                     border: OutlineInputBorder(),
                   ),
-                  items: snapshot.data!.docs.map((doc) {
 
-                    final className =
-                        "${doc["className"]} ${doc["section"]}";
-
-                    return DropdownMenuItem(
+                  items: classNames.map((className) {
+                    return DropdownMenuItem<String>(
                       value: className,
                       child: Text(className),
                     );
-
                   }).toList(),
 
                   onChanged: (value) {
@@ -169,27 +223,72 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 15),
 
+            // =========================
+            // BUS
+            // =========================
+
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getBusDropdown(),
               builder: (context, snapshot) {
 
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
 
+                if (snapshot.hasError) {
+                  return Text(
+                    "Error loading buses: ${snapshot.error}",
+                  );
+                }
+
+                if (!snapshot.hasData ||
+                    snapshot.data!.docs.isEmpty) {
+                  return const Text(
+                    "No Buses Found",
+                  );
+                }
+
+                final buses = snapshot.data!.docs;
+
+                // Remove duplicate bus IDs
+                final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
+                uniqueBuses = {};
+
+                for (final bus in buses) {
+                  uniqueBuses[bus.id] = bus;
+                }
+
+                final busList =
+                uniqueBuses.values.toList();
+
+                final safeSelectedBus =
+                busList.any(
+                      (bus) => bus.id == selectedBusId,
+                )
+                    ? selectedBusId
+                    : null;
+
                 return DropdownButtonFormField<String>(
-                  value: selectedBusId,
+                  value: safeSelectedBus,
+
                   decoration: const InputDecoration(
                     labelText: "Select Bus",
                     border: OutlineInputBorder(),
                   ),
-                  items: snapshot.data!.docs.map((bus) {
 
-                    return DropdownMenuItem(
+                  items: busList.map((bus) {
+                    final data = bus.data();
+
+                    return DropdownMenuItem<String>(
                       value: bus.id,
-                      child: Text(bus["busNumber"]),
+                      child: Text(
+                        data["busNumber"]?.toString() ??
+                            "Unknown Bus",
+                      ),
                     );
-
                   }).toList(),
 
                   onChanged: (value) {
@@ -203,27 +302,71 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 15),
 
+            // =========================
+            // PARENT
+            // =========================
+
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getParentsDropdown(),
               builder: (context, snapshot) {
 
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
 
+                if (snapshot.hasError) {
+                  return Text(
+                    "Error loading parents: ${snapshot.error}",
+                  );
+                }
+
+                if (!snapshot.hasData ||
+                    snapshot.data!.docs.isEmpty) {
+                  return const Text(
+                    "No Parents Found",
+                  );
+                }
+
+                final parents = snapshot.data!.docs;
+
+                final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
+                uniqueParents = {};
+
+                for (final parent in parents) {
+                  uniqueParents[parent.id] = parent;
+                }
+
+                final parentList =
+                uniqueParents.values.toList();
+
+                final safeSelectedParent =
+                parentList.any(
+                      (parent) => parent.id == selectedParentId,
+                )
+                    ? selectedParentId
+                    : null;
+
                 return DropdownButtonFormField<String>(
-                  value: selectedParentId,
+                  value: safeSelectedParent,
+
                   decoration: const InputDecoration(
                     labelText: "Select Parent",
                     border: OutlineInputBorder(),
                   ),
-                  items: snapshot.data!.docs.map((parent) {
 
-                    return DropdownMenuItem(
+                  items: parentList.map((parent) {
+                    final data = parent.data();
+
+                    return DropdownMenuItem<String>(
                       value: parent.id,
-                      child: Text(parent["name"]),
+                      child: Text(
+                        data["name"]?.toString() ??
+                            "Unknown Parent",
+                      ),
                     );
-
                   }).toList(),
 
                   onChanged: (value) {
@@ -237,6 +380,10 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 30),
 
+            // =========================
+            // SAVE / UPDATE BUTTON
+            // =========================
+
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -246,15 +393,18 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                       ? Icons.save
                       : Icons.edit,
                 ),
+
                 label: Text(
                   widget.studentId == null
                       ? "Save Student"
                       : "Update Student",
                 ),
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                 ),
+
                 onPressed: saveStudent,
               ),
             ),
