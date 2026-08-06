@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trackmybus/services/auth_service.dart';
 
-import 'parent_dashboard.dart';
+import 'parent/parent_dashboard.dart';
 import 'admin_dashboard.dart';
 import 'driver/driver_dashboard.dart';
 import 'teacher/teacher_dashboard.dart';

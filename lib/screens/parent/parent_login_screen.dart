@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trackmybus/screens/parent_dashboard.dart';
+import 'package:trackmybus/screens/parent/parent_dashboard.dart';
 import 'package:trackmybus/services/auth_service.dart';
 
 class ParentLoginScreen extends StatefulWidget {
