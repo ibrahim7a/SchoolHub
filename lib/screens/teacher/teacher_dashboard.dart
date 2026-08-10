@@ -237,7 +237,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     iconColor: Colors.green,
                     onTap: () {
                       openScreen(
-                        TeacherAttendanceScreen(),
+                        const TeacherAttendanceScreen(),
                       );
                     },
                   ),
@@ -437,7 +437,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   // =====================================================
 
   Widget buildAttendancePage() {
-    return TeacherAttendanceScreen();
+    return const TeacherAttendanceScreen();
   }
 
   // =====================================================
@@ -613,6 +613,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         selectedIndex: selectedIndex,
 
         onDestinationSelected: (index) {
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TeacherAttendanceScreen(),
+              ),
+            );
+            return;
+          }
           setState(() {
             selectedIndex = index;
           });

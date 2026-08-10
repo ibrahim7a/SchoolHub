@@ -1,188 +1,180 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:trackmybus/services/firestore_service.dart';
+
+import '../../services/firestore_service.dart';
 
 class MyChildScreen extends StatelessWidget {
   MyChildScreen({super.key});
 
-  final firestoreService = FirestoreService();
-  final currentUser = FirebaseAuth.instance.currentUser;
+  final FirestoreService firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
+    final User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text("Parent account not found"),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("My Child"),
+        title: const Text("My Children"),
         backgroundColor: Colors.blue,
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: firestoreService.getStudentsByParent(currentUser!.uid),
+        stream: firestoreService.getStudentsByParent(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text("Error: ${snapshot.error}"),
+            );
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
-              child: Text("No student assigned to this parent"),
+              child: Text(
+                "No children found",
+                style: TextStyle(fontSize: 18),
+              ),
             );
           }
 
-          final studentDoc = snapshot.data!.docs.first;
-          final student = studentDoc.data();
+          final children = snapshot.data!.docs;
 
-          return SingleChildScrollView(
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 15),
-                Text(
-                  student["name"] ?? "Unknown Student",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  "Student ID : ${studentDoc.id}",
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 20),
+            itemCount: children.length,
+            itemBuilder: (context, index) {
+              final document = children[index];
+              final child = document.data();
 
-                // Student Details Card
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.class_),
-                        title: const Text("Class"),
-                        trailing: Text(student["className"] ?? "N/A"),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.confirmation_number),
-                        title: const Text("Roll Number"),
-                        trailing: Text(student["rollNumber"] ?? "12"),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.directions_bus),
-                        title: const Text("Bus Number"),
-                        trailing: Text(student["busNumber"] ?? "TS09 AB 1234"),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.water_drop),
-                        title: const Text("Blood Group"),
-                        trailing: Text(student["bloodGroup"] ?? "O+"),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+              final studentId = child["studentId"] ?? document.id;
+              final name = child["name"] ?? "Unknown";
+              final className = child["className"] ?? "Not assigned";
+              final busId = child["busId"] ?? "Not assigned";
 
-                // Parent Details Card
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.person),
-                        title: const Text("Parent Name"),
-                        trailing: Text(student["parentName"] ?? "Ibrahim"),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.phone),
-                        title: const Text("Phone"),
-                        trailing: Text(student["phone"] ?? "9876543210"),
-                      ),
-                    ],
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.only(bottom: 15),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: const CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.blue,
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-
-                // Quick Stats Row (Attendance & Homework summary)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: const [
-                              Icon(Icons.check_circle, color: Colors.green, size: 35),
-                              SizedBox(height: 8),
-                              Text("Attendance"),
-                              Text(
-                                "95%",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                              ),
-                            ],
-                          ),
+                  title: Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      "Class: $className\nBus: $busId",
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 18,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChildDetailsScreen(
+                          studentId: studentId,
+                          name: name,
+                          className: className,
+                          busId: busId,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16), // Fixed: Use width inside a Row
-                    Expanded(
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: const [
-                              Icon(Icons.assignment, color: Colors.orange, size: 35),
-                              SizedBox(height: 8),
-                              Text("Homework"),
-                              Text(
-                                "3",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 20),
-
-                // Actions GridView (Moved out of Row into the main Column)
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  children: [
-                    _buildGridItem(Icons.directions_bus, "Track Bus", Colors.blue, () {}),
-                    _buildGridItem(Icons.bar_chart, "Results", Colors.green, () {}),
-                    _buildGridItem(Icons.notifications, "Notices", Colors.orange, () {}),
-                    _buildGridItem(Icons.book, "Homework", Colors.purple, () {}),
-                  ],
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
     );
   }
+}
 
-  // Extracted Helper Method to clean up repeated GridView layouts
-  Widget _buildGridItem(IconData icon, String title, Color color, VoidCallback onTap) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+class ChildDetailsScreen extends StatelessWidget {
+  final String studentId;
+  final String name;
+  final String className;
+  final String busId;
+
+  const ChildDetailsScreen({
+    super.key,
+    required this.studentId,
+    required this.name,
+    required this.className,
+    required this.busId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(name),
+        backgroundColor: Colors.blue,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: color),
+            const CircleAvatar(
+              radius: 45,
+              backgroundColor: Colors.blue,
+              child: Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 50,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              name,
+              style: const TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 10),
             Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              "Student ID: $studentId",
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Class: $className",
+              style: const TextStyle(fontSize: 17),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Bus: $busId",
+              style: const TextStyle(fontSize: 17),
             ),
           ],
         ),

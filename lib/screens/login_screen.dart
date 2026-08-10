@@ -22,9 +22,15 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
   bool obscurePassword = true;
 
+  // =====================================================
+  // LOGIN
+  // =====================================================
+
   Future<void> login() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+
+    // ================= VALIDATION =================
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -40,94 +46,159 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // LOGIN WITH FIREBASE
+      // =================================================
+      // FIREBASE LOGIN
+      // =================================================
+
       final credential = await authService.signIn(
         email: email,
         password: password,
       );
 
-      // GET LOGGED-IN USER
       final user = credential.user;
 
       if (user == null) {
-        throw Exception("User not found");
+        throw Exception("User account not found.");
       }
 
+      // =================================================
       // GET USER ROLE
+      // =================================================
+
       final role = await authService.getUserRole(user);
 
       if (!mounted) return;
 
-      if (role == null) {
+      // =================================================
+      // ROLE NOT FOUND
+      // =================================================
+
+      if (role == null || role.isEmpty) {
+        await authService.signOut();
+
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("User role not found"),
+            content: Text(
+              "Your account role was not found. Please contact your school administrator.",
+            ),
           ),
         );
+
         return;
       }
 
-      // ================= ADMIN =================
+      // =================================================
+      // NORMALIZE ROLE
+      // =================================================
 
-      if (role == "admin") {
-        Navigator.push(
+      final userRole = role.toLowerCase().trim();
+
+      // =================================================
+      // ADMIN
+      // =================================================
+
+      if (userRole == "admin") {
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => const AdminDashboard(),
+            builder: (_) => const AdminDashboard(),
           ),
+              (route) => false,
         );
+
+        return;
       }
 
-      // ================= TEACHER =================
+      // =================================================
+      // TEACHER
+      // =================================================
 
-      else if (role == "teacher") {
-        Navigator.push(
+      if (userRole == "teacher") {
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => const TeacherDashboard(),
+            builder: (_) => const TeacherDashboard(),
           ),
+              (route) => false,
         );
+
+        return;
       }
 
-      // ================= PARENT =================
+      // =================================================
+      // DRIVER
+      // =================================================
 
-      else if (role == "parent") {
-        Navigator.push(
+      if (userRole == "driver") {
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => const ParentDashboard(),
+            builder: (_) => const DriverDashboard(),
           ),
+              (route) => false,
         );
+
+        return;
       }
 
-      // ================= DRIVER =================
+      // =================================================
+      // PARENT
+      // =================================================
 
-      else if (role == "driver") {
-        Navigator.push(
+      if (userRole == "parent") {
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => const DriverDashboard(),
+            builder: (_) => const ParentDashboard(),
           ),
+              (route) => false,
         );
+
+        return;
       }
 
-      // ================= UNKNOWN ROLE =================
+      // =================================================
+      // UNKNOWN ROLE
+      // =================================================
 
-      else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Unknown user role: $role"),
-          ),
-        );
-      }
-    } on Exception catch (e) {
+      await authService.signOut();
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Login failed: ${e.toString()}",
+            "Unknown user role: $role",
           ),
+        ),
+      );
+    } on Exception catch (e) {
+      if (!mounted) return;
+
+      String message = "Login failed.";
+
+      final error = e.toString().toLowerCase();
+
+      if (error.contains("user-not-found")) {
+        message = "No account found with this email.";
+      } else if (error.contains("wrong-password") ||
+          error.contains("invalid-credential")) {
+        message = "Incorrect email or password.";
+      } else if (error.contains("invalid-email")) {
+        message = "Please enter a valid email address.";
+      } else if (error.contains("too-many-requests")) {
+        message = "Too many attempts. Please try again later.";
+      } else if (error.contains("network-request-failed")) {
+        message = "Please check your internet connection.";
+      } else {
+        message = "Login failed. Please try again.";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
         ),
       );
     } finally {
@@ -139,24 +210,38 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // =====================================================
+  // DISPOSE
+  // =====================================================
+
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+
     super.dispose();
   }
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1565C0),
+
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
+
             child: Column(
               children: [
-                // ================= LOGO =================
+
+                // =================================================
+                // LOGO
+                // =================================================
 
                 const Icon(
                   Icons.school,
@@ -187,17 +272,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 35),
 
-                // ================= LOGIN CARD =================
+                // =================================================
+                // LOGIN CARD
+                // =================================================
 
                 Card(
                   elevation: 8,
+
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
+
                   child: Padding(
                     padding: const EdgeInsets.all(24),
+
                     child: Column(
                       children: [
+
                         const Text(
                           "Login",
                           style: TextStyle(
@@ -208,35 +299,56 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 25),
 
+                        // =================================================
                         // EMAIL
+                        // =================================================
 
                         TextField(
                           controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
+
+                          keyboardType:
+                          TextInputType.emailAddress,
+
+                          decoration:
+                          const InputDecoration(
                             labelText: "Email",
-                            prefixIcon: Icon(Icons.email),
-                            border: OutlineInputBorder(),
+                            prefixIcon:
+                            Icon(Icons.email),
+                            border:
+                            OutlineInputBorder(),
                           ),
                         ),
 
                         const SizedBox(height: 18),
 
+                        // =================================================
                         // PASSWORD
+                        // =================================================
 
                         TextField(
                           controller: passwordController,
-                          obscureText: obscurePassword,
-                          decoration: InputDecoration(
+
+                          obscureText:
+                          obscurePassword,
+
+                          decoration:
+                          InputDecoration(
                             labelText: "Password",
-                            prefixIcon: const Icon(Icons.lock),
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
+
+                            prefixIcon:
+                            const Icon(Icons.lock),
+
+                            border:
+                            const OutlineInputBorder(),
+
+                            suffixIcon:
+                            IconButton(
                               icon: Icon(
                                 obscurePassword
                                     ? Icons.visibility
                                     : Icons.visibility_off,
                               ),
+
                               onPressed: () {
                                 setState(() {
                                   obscurePassword =
@@ -249,35 +361,57 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 25),
 
+                        // =================================================
                         // LOGIN BUTTON
+                        // =================================================
 
                         SizedBox(
                           width: double.infinity,
                           height: 52,
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : login,
-                            style: ElevatedButton.styleFrom(
+
+                          child:
+                          ElevatedButton(
+                            onPressed:
+                            isLoading
+                                ? null
+                                : login,
+
+                            style:
+                            ElevatedButton.styleFrom(
                               backgroundColor:
-                              const Color(0xFF1565C0),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
+                              const Color(
+                                0xFF1565C0,
+                              ),
+
+                              foregroundColor:
+                              Colors.white,
+
+                              shape:
+                              RoundedRectangleBorder(
                                 borderRadius:
-                                BorderRadius.circular(12),
+                                BorderRadius.circular(
+                                  12,
+                                ),
                               ),
                             ),
+
                             child: isLoading
                                 ? const SizedBox(
                               height: 25,
                               width: 25,
+
                               child:
                               CircularProgressIndicator(
-                                color: Colors.white,
+                                color:
+                                Colors.white,
                                 strokeWidth: 2,
                               ),
                             )
                                 : const Text(
                               "Login",
-                              style: TextStyle(
+
+                              style:
+                              TextStyle(
                                 fontSize: 17,
                                 fontWeight:
                                 FontWeight.bold,

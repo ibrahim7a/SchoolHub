@@ -1,94 +1,190 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/firestore_service.dart';
 
 class ParentAttendanceScreen extends StatelessWidget {
-  const ParentAttendanceScreen({super.key});
+  final String studentId;
+  final String studentName;
+
+  ParentAttendanceScreen({
+    super.key,
+    required this.studentId,
+    required this.studentName,
+  });
+
+  final FirestoreService firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Attendance"),
+        title: Text("$studentName Attendance"),
         backgroundColor: Colors.blue,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: firestoreService.getAttendanceByStudent(studentId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: const [
-                  Column(
-                    children: [
-                      Text(
-                        "22",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                      Text("Present"),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        "2",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                      Text("Absent"),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        "91%",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      Text("Attendance"),
-                    ],
-                  ),
-                ],
+          if (snapshot.hasError) {
+            return Center(
+              child: Text("Error: ${snapshot.error}"),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "No attendance record found",
+                style: TextStyle(fontSize: 18),
               ),
-            ),
-          ),
+            );
+          }
 
-          const SizedBox(height: 20),
+          final records = snapshot.data!.docs;
 
-          const ListTile(
-            leading: Icon(Icons.check_circle, color: Colors.green),
-            title: Text("01 July 2026"),
-            trailing: Text("Present"),
-          ),
+          int present = 0;
+          int absent = 0;
 
-          const Divider(),
+          for (final doc in records) {
+            final data = doc.data();
 
-          const ListTile(
-            leading: Icon(Icons.check_circle, color: Colors.green),
-            title: Text("02 July 2026"),
-            trailing: Text("Present"),
-          ),
+            if (data['isPresent'] == true) {
+              present++;
+            } else {
+              absent++;
+            }
+          }
 
-          const Divider(),
+          final total = present + absent;
+          final percentage =
+          total == 0 ? 0 : (present / total) * 100;
 
-          const ListTile(
-            leading: Icon(Icons.cancel, color: Colors.red),
-            title: Text("03 July 2026"),
-            trailing: Text("Absent"),
-          ),
-        ],
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment:
+                    MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text(
+                            "$present",
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const Text("Present"),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            "$absent",
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const Text("Absent"),
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            "${percentage.toStringAsFixed(0)}%",
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const Text("Attendance"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              ...records.map((doc) {
+                final data = doc.data();
+
+                final isPresent = data['isPresent'] == true;
+                final timestamp = data['date'] as Timestamp?;
+
+                String date = "Unknown date";
+
+                if (timestamp != null) {
+                  final d = timestamp.toDate();
+
+                  date =
+                  "${d.day.toString().padLeft(2, '0')} "
+                      "${_month(d.month)} ${d.year}";
+                }
+
+                return Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(
+                        isPresent
+                            ? Icons.check_circle
+                            : Icons.cancel,
+                        color: isPresent
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                      title: Text(date),
+                      trailing: Text(
+                        isPresent ? "Present" : "Absent",
+                        style: TextStyle(
+                          color: isPresent
+                              ? Colors.green
+                              : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Divider(),
+                  ],
+                );
+              }),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  String _month(int month) {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    return months[month - 1];
   }
 }

@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // ================= LOGIN =================
 
   Future<UserCredential> signIn({
     required String email,
@@ -17,46 +17,70 @@ class AuthService {
     );
   }
 
-  // ================= TEACHER ACCOUNT =================
-
   Future<UserCredential> createTeacher({
     required String email,
     required String password,
   }) async {
-    return await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
+    final app = await Firebase.initializeApp(
+      name: 'teacherAuthApp',
+      options: DefaultFirebaseOptions.currentPlatform,
     );
-  }
 
-  // ================= DRIVER ACCOUNT =================
+    final secondaryAuth = FirebaseAuth.instanceFor(app: app);
+
+    try {
+      return await secondaryAuth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+    } finally {
+      await app.delete();
+    }
+  }
 
   Future<UserCredential> createDriver({
     required String email,
     required String password,
   }) async {
-    return await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
+    final app = await Firebase.initializeApp(
+      name: 'driverAuthApp',
+      options: DefaultFirebaseOptions.currentPlatform,
     );
-  }
 
-  // ================= GENERAL USER ACCOUNT =================
+    final secondaryAuth = FirebaseAuth.instanceFor(app: app);
+
+    try {
+      return await secondaryAuth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+    } finally {
+      await app.delete();
+    }
+  }
 
   Future<UserCredential> createUserAccount({
     required String email,
     required String password,
   }) async {
-    return await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
+    final app = await Firebase.initializeApp(
+      name: 'userAuthApp',
+      options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    final secondaryAuth = FirebaseAuth.instanceFor(app: app);
+
+    try {
+      return await secondaryAuth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+    } finally {
+      await app.delete();
+    }
   }
 
-  // ================= GET USER ROLE =================
-
   Future<String?> getUserRole(User user) async {
-    // First check professional users collection
     final userDoc = await _firestore
         .collection('users')
         .doc(user.uid)
@@ -70,8 +94,6 @@ class AuthService {
       }
     }
 
-    // ================= OLD TEACHER DATA =================
-
     final teacherQuery = await _firestore
         .collection('teachers')
         .where('email', isEqualTo: user.email)
@@ -82,8 +104,6 @@ class AuthService {
       return 'teacher';
     }
 
-    // ================= OLD PARENT DATA =================
-
     final parentQuery = await _firestore
         .collection('parents')
         .where('email', isEqualTo: user.email)
@@ -93,8 +113,6 @@ class AuthService {
     if (parentQuery.docs.isNotEmpty) {
       return 'parent';
     }
-
-    // ================= OLD DRIVER DATA =================
 
     final driverQuery = await _firestore
         .collection('drivers')
@@ -108,8 +126,6 @@ class AuthService {
 
     return null;
   }
-
-  // ================= CREATE USER PROFILE =================
 
   Future<void> createUserProfile({
     required String uid,
@@ -128,13 +144,9 @@ class AuthService {
     });
   }
 
-  // ================= SIGN OUT =================
-
   Future<void> signOut() async {
     await _auth.signOut();
   }
-
-  // ================= CURRENT USER =================
 
   User? get currentUser => _auth.currentUser;
 }

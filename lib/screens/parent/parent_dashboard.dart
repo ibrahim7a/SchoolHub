@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 
 import '../bus_tracking_screen.dart';
 import '../my_child_screen.dart';
@@ -19,9 +21,7 @@ class ParentDashboard extends StatefulWidget {
 class _ParentDashboardState extends State<ParentDashboard> {
   int selectedIndex = 0;
 
-  // =====================================================
-  // LOGOUT
-  // =====================================================
+  final FirestoreService firestoreService = FirestoreService();
 
   Future<void> logout() async {
     final shouldLogout = await showDialog<bool>(
@@ -29,20 +29,14 @@ class _ParentDashboardState extends State<ParentDashboard> {
       builder: (context) {
         return AlertDialog(
           title: const Text("Logout"),
-          content: const Text(
-            "Are you sure you want to logout?",
-          ),
+          content: const Text("Are you sure you want to logout?"),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
+              onPressed: () => Navigator.pop(context, false),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
+              onPressed: () => Navigator.pop(context, true),
               child: const Text("Logout"),
             ),
           ],
@@ -65,10 +59,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // =====================================================
-  // OPEN SCREEN
-  // =====================================================
-
   void openScreen(Widget screen) {
     Navigator.push(
       context,
@@ -78,10 +68,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // =====================================================
-  // HOME
-  // =====================================================
-
   Widget buildHome() {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -90,11 +76,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // =================================================
-          // WELCOME HEADER
-          // =================================================
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(22),
@@ -109,7 +90,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ),
             child: Row(
               children: [
-
                 const CircleAvatar(
                   radius: 32,
                   backgroundColor: Colors.white,
@@ -119,13 +99,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     color: Color(0xFF1565C0),
                   ),
                 ),
-
                 const SizedBox(width: 15),
-
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         "Welcome, Parent 👋",
@@ -135,9 +112,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 5),
-
                       Text(
                         user?.email ?? "Parent Account",
                         style: const TextStyle(
@@ -165,10 +140,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
           const SizedBox(height: 15),
 
-          // =================================================
-          // QUICK ACCESS GRID
-          // =================================================
-
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -177,68 +148,48 @@ class _ParentDashboardState extends State<ParentDashboard> {
             mainAxisSpacing: 15,
             childAspectRatio: 1.05,
             children: [
-
-              // BUS
               _dashboardCard(
                 icon: Icons.directions_bus,
                 title: "Bus Tracking",
                 iconColor: Colors.blue,
                 onTap: () {
-                  openScreen(
-                    const BusTrackingScreen(),
-                  );
+                  openScreen(const BusTrackingScreen());
                 },
               ),
-
-              // CHILD
               _dashboardCard(
                 icon: Icons.person,
                 title: "My Child",
                 iconColor: Colors.green,
                 onTap: () {
-                  openScreen(
-                    MyChildScreen(),
-                  );
+                  openScreen(MyChildScreen());
                 },
               ),
-
-              // ATTENDANCE
               _dashboardCard(
                 icon: Icons.check_circle,
                 title: "Attendance",
                 iconColor: Colors.orange,
                 onTap: () {
-                  openScreen(
-                    const ParentAttendanceScreen(),
-                  );
+                  setState(() {
+                    selectedIndex = 1;
+                  });
                 },
               ),
-
-              // HOMEWORK
               _dashboardCard(
                 icon: Icons.menu_book,
                 title: "Homework",
                 iconColor: Colors.purple,
                 onTap: () {
-                  openScreen(
-                    const ParentHomeworkScreen(),
-                  );
+                  openScreen(const ParentHomeworkScreen());
                 },
               ),
-
-              // RESULTS
               _dashboardCard(
                 icon: Icons.bar_chart,
                 title: "Results",
                 iconColor: Colors.red,
                 onTap: () {
-                  openScreen(
-                    const ParentResultScreen(),
-                  );
+                  openScreen(const ParentResultScreen());
                 },
               ),
-
-              // NOTICES
               _dashboardCard(
                 icon: Icons.notifications,
                 title: "Notices",
@@ -246,9 +197,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        "No new notices",
-                      ),
+                      content: Text("No new notices"),
                     ),
                   );
                 },
@@ -257,10 +206,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ),
 
           const SizedBox(height: 25),
-
-          // =================================================
-          // SCHOOL UPDATE
-          // =================================================
 
           const Text(
             "School Updates",
@@ -301,10 +246,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // =====================================================
-  // DASHBOARD CARD
-  // =====================================================
-
   Widget _dashboardCard({
     required IconData icon,
     required String title,
@@ -323,7 +264,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
             CircleAvatar(
               radius: 28,
               backgroundColor: iconColor.withValues(alpha: 0.12),
@@ -333,9 +273,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 color: iconColor,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Text(
               title,
               style: const TextStyle(
@@ -349,25 +287,100 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // =====================================================
-  // ATTENDANCE PAGE
-  // =====================================================
-
   Widget buildAttendancePage() {
-    return const ParentAttendanceScreen();
-  }
+    final user = FirebaseAuth.instance.currentUser;
 
-  // =====================================================
-  // BUS PAGE
-  // =====================================================
+    if (user == null) {
+      return const Center(
+        child: Text("Parent account not found"),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: firestoreService.getStudentsByParent(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text("Error: ${snapshot.error}"),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              "No children found",
+              style: TextStyle(fontSize: 18),
+            ),
+          );
+        }
+
+        final children = snapshot.data!.docs;
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text(
+              "Select Child",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 15),
+            ...children.map((student) {
+              final data = student.data();
+
+              final name = data["name"] ?? "Unknown";
+              final className = data["className"] ?? "Not assigned";
+
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.orange,
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text("Class: $className"),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 18,
+                  ),
+                  onTap: () {
+                    openScreen(
+                      ParentAttendanceScreen(
+                        studentId: student.id,
+                        studentName: name,
+                      ),
+                    );
+                  },
+                ),
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
 
   Widget buildBusPage() {
     return const BusTrackingScreen();
   }
-
-  // =====================================================
-  // PROFILE PAGE
-  // =====================================================
 
   Widget buildProfilePage() {
     final user = FirebaseAuth.instance.currentUser;
@@ -376,9 +389,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-
           const SizedBox(height: 30),
-
           const CircleAvatar(
             radius: 55,
             backgroundColor: Color(0xFFE3F2FD),
@@ -388,9 +399,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               color: Color(0xFF1565C0),
             ),
           ),
-
           const SizedBox(height: 20),
-
           const Text(
             "Parent Account",
             style: TextStyle(
@@ -398,9 +407,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             user?.email ?? "No email",
             style: const TextStyle(
@@ -408,9 +415,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               fontSize: 15,
             ),
           ),
-
           const SizedBox(height: 35),
-
           Card(
             child: ListTile(
               leading: const Icon(
@@ -423,9 +428,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               ),
             ),
           ),
-
           const SizedBox(height: 15),
-
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -447,10 +450,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // =====================================================
-  // PAGE TITLE
-  // =====================================================
-
   String getPageTitle() {
     switch (selectedIndex) {
       case 0:
@@ -466,42 +465,25 @@ class _ParentDashboardState extends State<ParentDashboard> {
     }
   }
 
-  // =====================================================
-  // BODY
-  // =====================================================
-
   Widget getCurrentPage() {
     switch (selectedIndex) {
       case 0:
         return buildHome();
-
       case 1:
         return buildAttendancePage();
-
       case 2:
         return buildBusPage();
-
       case 3:
         return buildProfilePage();
-
       default:
         return buildHome();
     }
   }
 
-  // =====================================================
-  // BUILD
-  // =====================================================
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
-      // ===================================================
-      // APP BAR
-      // ===================================================
-
       appBar: AppBar(
         title: Text(
           getPageTitle(),
@@ -513,45 +495,30 @@ class _ParentDashboardState extends State<ParentDashboard> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-
-      // ===================================================
-      // BODY
-      // ===================================================
-
       body: getCurrentPage(),
-
-      // ===================================================
-      // BOTTOM NAVIGATION
-      // ===================================================
-
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-
         onDestinationSelected: (index) {
           setState(() {
             selectedIndex = index;
           });
         },
-
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: "Home",
           ),
-
           NavigationDestination(
             icon: Icon(Icons.check_circle_outline),
             selectedIcon: Icon(Icons.check_circle),
             label: "Attendance",
           ),
-
           NavigationDestination(
             icon: Icon(Icons.directions_bus_outlined),
             selectedIcon: Icon(Icons.directions_bus),
             label: "Bus",
           ),
-
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),

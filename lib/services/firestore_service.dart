@@ -191,12 +191,24 @@ class FirestoreService {
     required String className,
     required bool isPresent,
   }) async {
-    await _firestore.collection('attendance').add({
+    final DateTime now = DateTime.now();
+
+    final String dateKey =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    final String attendanceId =
+        "${studentId}_$dateKey";
+
+    await _firestore
+        .collection('attendance')
+        .doc(attendanceId)
+        .set({
       'studentId': studentId,
       'studentName': studentName,
-      'className' : className,
+      'className': className,
       'isPresent': isPresent,
-      'date': Timestamp.now(),
+      'date': Timestamp.fromDate(now),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -467,7 +479,6 @@ class FirestoreService {
     return _firestore
         .collection('students')
         .where('parentId', isEqualTo: parentId)
-        .limit(1)
         .snapshots();
   }
 
@@ -475,6 +486,14 @@ class FirestoreService {
     return _firestore
         .collection("homework")
         .where("className", isEqualTo: className)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getAttendanceByStudent(String studentId) {
+    return _firestore
+        .collection("attendance")
+        .where("studentId", isEqualTo: studentId)
+        .orderBy("date", descending: true)
         .snapshots();
   }
 

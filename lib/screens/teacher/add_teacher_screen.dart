@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 
@@ -18,8 +19,8 @@ class AddTeacherScreen extends StatefulWidget {
 }
 
 class _AddTeacherScreenState extends State<AddTeacherScreen> {
-  final FirestoreService firestoreService = FirestoreService();
-  final AuthService authService = AuthService();
+  final firestoreService = FirestoreService();
+  final authService = AuthService();
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -28,8 +29,9 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
 
   String? selectedSubject;
   String? selectedClass;
+  bool isLoading = false;
 
-  final List<String> subjects = [
+  final subjects = [
     "English",
     "Urdu",
     "Hindi",
@@ -45,36 +47,114 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
   void initState() {
     super.initState();
 
-    if (widget.teacherData != null) {
-      nameController.text =
-          widget.teacherData!["name"] ?? "";
+    final data = widget.teacherData;
 
-      emailController.text =
-          widget.teacherData!["email"] ?? "";
+    if (data != null) {
+      nameController.text = data["name"] ?? "";
+      emailController.text = data["email"] ?? "";
+      phoneController.text = data["phone"] ?? "";
+      selectedSubject = data["subject"];
+      selectedClass = data["className"];
+    }
+  }
 
-      phoneController.text =
-          widget.teacherData!["phone"] ?? "";
+  Future<void> saveTeacher() async {
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    final password = passwordController.text.trim();
 
-      selectedSubject =
-      widget.teacherData!["subject"];
+    if (name.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        selectedSubject == null ||
+        selectedClass == null) {
+      showMessage("Please fill all fields");
+      return;
+    }
 
-      // Old data ko handle karna
-      final oldClass =
-      widget.teacherData!["className"];
+    if (widget.teacherId == null && password.isEmpty) {
+      showMessage("Please enter password");
+      return;
+    }
 
-      if (oldClass != null) {
-        selectedClass = oldClass
-            .toString()
-            .trim();
+    if (!email.contains("@") || !email.contains(".")) {
+      showMessage("Please enter a valid email address");
+      return;
+    }
 
-        // "class 10" -> "Class 10"
-        if (selectedClass!.isNotEmpty) {
-          selectedClass =
-              selectedClass![0].toUpperCase() +
-                  selectedClass!.substring(1);
-        }
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      if (widget.teacherId == null) {
+        final credential = await authService.createTeacher(
+          email: email,
+          password: password,
+        );
+
+        final uid = credential.user!.uid;
+
+        await firestoreService.addTeacher(
+          teacherId: uid,
+          name: name,
+          email: email,
+          phone: phone,
+          subject: selectedSubject!,
+          className: selectedClass!,
+        );
+
+        await authService.createUserProfile(
+          uid: uid,
+          name: name,
+          email: email,
+          role: "teacher",
+        );
+
+        showMessage("Teacher Added Successfully");
+      } else {
+        await firestoreService.updateTeacher(
+          teacherId: widget.teacherId!,
+          name: name,
+          email: email,
+          phone: phone,
+          subject: selectedSubject!,
+          className: selectedClass!,
+        );
+
+        showMessage("Teacher Updated Successfully");
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      String message = "Failed to add teacher";
+
+      if (e.code == "email-already-in-use") {
+        message = "This email is already registered";
+      } else if (e.code == "invalid-email") {
+        message = "Please enter a valid email address";
+      } else if (e.code == "weak-password") {
+        message = "Password must be at least 6 characters";
+      }
+
+      showMessage(message);
+    } catch (e) {
+      showMessage("Something went wrong");
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
       }
     }
+  }
+
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -91,21 +171,14 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.teacherId == null
-              ? "Add Teacher"
-              : "Edit Teacher",
+          widget.teacherId == null ? "Add Teacher" : "Edit Teacher",
         ),
         backgroundColor: Colors.blue,
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-
         child: Column(
           children: [
-
-            // ================= NAME =================
-
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
@@ -113,11 +186,7 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 15),
-
-            // ================= EMAIL =================
-
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
@@ -126,11 +195,7 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 15),
-
-            // ================= PHONE =================
-
             TextField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
@@ -139,12 +204,8 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-
-            const SizedBox(height: 15),
-
-            // ================= PASSWORD =================
-
             if (widget.teacherId == null) ...[
+              const SizedBox(height: 15),
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -153,265 +214,85 @@ class _AddTeacherScreenState extends State<AddTeacherScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-
-              const SizedBox(height: 15),
             ],
-
-            // ================= SUBJECT =================
-
+            const SizedBox(height: 15),
             DropdownButtonFormField<String>(
               value: selectedSubject,
-
               decoration: const InputDecoration(
                 labelText: "Subject",
                 border: OutlineInputBorder(),
               ),
-
               items: subjects.map((subject) {
-                return DropdownMenuItem<String>(
+                return DropdownMenuItem(
                   value: subject,
                   child: Text(subject),
                 );
               }).toList(),
-
               onChanged: (value) {
                 setState(() {
                   selectedSubject = value;
                 });
               },
             ),
-
             const SizedBox(height: 15),
-
-            // ================= CLASS =================
-
-            StreamBuilder<
-                QuerySnapshot<Map<String, dynamic>>>(
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getClasses(),
-
               builder: (context, snapshot) {
-
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Text(
-                    "Error loading classes: ${snapshot.error}",
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
                 }
 
                 if (!snapshot.hasData ||
                     snapshot.data!.docs.isEmpty) {
-                  return const Text(
-                    "No Classes Found",
-                  );
+                  return const Text("No Classes Found");
                 }
 
-                final classes =
-                    snapshot.data!.docs;
-
-                // Class names prepare karna
-                final classNames =
-                classes.map((doc) {
-
+                final classes = snapshot.data!.docs.map((doc) {
                   final className =
-                  doc["className"]
-                      .toString()
-                      .trim();
-
+                  doc["className"].toString().trim();
                   final section =
-                  doc["section"]
-                      .toString()
-                      .trim();
+                  doc["section"].toString().trim();
 
-                  String finalClass;
-
-                  if (section.isEmpty) {
-                    finalClass = className;
-                  } else {
-                    finalClass =
-                    "$className $section";
-                  }
-
-                  // First letter capital
-                  if (finalClass.isNotEmpty) {
-                    finalClass =
-                        finalClass[0].toUpperCase() +
-                            finalClass.substring(1);
-                  }
-
-                  return finalClass;
-
+                  return section.isEmpty
+                      ? className
+                      : "$className $section";
                 }).toSet().toList();
 
-                // Agar purana selectedClass
-                // dropdown me available nahi hai
-                String? dropdownValue;
-
-                if (selectedClass != null &&
-                    classNames.contains(selectedClass)) {
-                  dropdownValue = selectedClass;
-                }
-
                 return DropdownButtonFormField<String>(
-                  value: dropdownValue,
-
+                  value: classes.contains(selectedClass)
+                      ? selectedClass
+                      : null,
                   decoration: const InputDecoration(
                     labelText: "Assign Class",
                     border: OutlineInputBorder(),
                   ),
-
-                  items: classNames.map((className) {
-
-                    return DropdownMenuItem<String>(
+                  items: classes.map((className) {
+                    return DropdownMenuItem(
                       value: className,
                       child: Text(className),
                     );
-
                   }).toList(),
-
                   onChanged: (value) {
-
                     setState(() {
                       selectedClass = value;
                     });
-
                   },
                 );
               },
             ),
-
             const SizedBox(height: 25),
-
-            // ================= SAVE / UPDATE =================
-
             SizedBox(
               width: double.infinity,
               height: 50,
-
               child: ElevatedButton(
-
-                child: Text(
+                onPressed: isLoading ? null : saveTeacher,
+                child: isLoading
+                    ? const CircularProgressIndicator()
+                    : Text(
                   widget.teacherId == null
                       ? "Save Teacher"
                       : "Update Teacher",
                 ),
-
-                onPressed: () async {
-
-                  if (nameController.text
-                      .trim()
-                      .isEmpty ||
-                      emailController.text
-                          .trim()
-                          .isEmpty ||
-                      phoneController.text
-                          .trim()
-                          .isEmpty ||
-                      selectedSubject == null ||
-                      selectedClass == null) {
-
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content:
-                        Text("Please fill all fields"),
-                      ),
-                    );
-
-                    return;
-                  }
-
-                  // ================= ADD TEACHER =================
-
-                  if (widget.teacherId == null) {
-
-                    if (passwordController.text
-                        .trim()
-                        .isEmpty) {
-
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(
-                        const SnackBar(
-                          content:
-                          Text("Please enter password"),
-                        ),
-                      );
-
-                      return;
-                    }
-
-                    final credential =
-                    await authService.createTeacher(
-                      email: emailController.text
-                          .trim(),
-                      password:
-                      passwordController.text
-                          .trim(),
-                    );
-
-                    await firestoreService.addTeacher(
-                      teacherId:
-                      credential.user!.uid,
-                      name: nameController.text
-                          .trim(),
-                      email: emailController.text
-                          .trim(),
-                      phone: phoneController.text
-                          .trim(),
-                      subject: selectedSubject!,
-                      className: selectedClass!,
-                    );
-
-                    if (!mounted) return;
-
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Teacher Added Successfully",
-                        ),
-                      ),
-                    );
-                  }
-
-                  // ================= EDIT TEACHER =================
-
-                  else {
-
-                    await firestoreService.updateTeacher(
-                      teacherId:
-                      widget.teacherId!,
-                      name: nameController.text
-                          .trim(),
-                      email: emailController.text
-                          .trim(),
-                      phone: phoneController.text
-                          .trim(),
-                      subject: selectedSubject!,
-                      className: selectedClass!,
-                    );
-
-                    if (!mounted) return;
-
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Teacher Updated Successfully",
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (!mounted) return;
-
-                  Navigator.pop(context);
-                },
               ),
             ),
           ],

@@ -30,9 +30,26 @@ class _AttendanceScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("${widget.className} Attendance"),
         backgroundColor: Colors.blue,
         centerTitle: true,
+
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+
+        title: Text(
+          "${widget.className} Attendance",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
 
       body: StreamBuilder<
