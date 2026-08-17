@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:trackmybus/services/auth_service.dart';
 
 import 'parent/parent_dashboard.dart';
@@ -22,15 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
   bool obscurePassword = true;
 
-  // =====================================================
-  // LOGIN
-  // =====================================================
-
   Future<void> login() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
-
-    // ================= VALIDATION =================
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,10 +41,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // =================================================
-      // FIREBASE LOGIN
-      // =================================================
-
       final credential = await authService.signIn(
         email: email,
         password: password,
@@ -61,17 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception("User account not found.");
       }
 
-      // =================================================
-      // GET USER ROLE
-      // =================================================
-
       final role = await authService.getUserRole(user);
 
       if (!mounted) return;
-
-      // =================================================
-      // ROLE NOT FOUND
-      // =================================================
 
       if (role == null || role.isEmpty) {
         await authService.signOut();
@@ -89,15 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // =================================================
-      // NORMALIZE ROLE
-      // =================================================
-
       final userRole = role.toLowerCase().trim();
-
-      // =================================================
-      // ADMIN
-      // =================================================
 
       if (userRole == "admin") {
         Navigator.pushAndRemoveUntil(
@@ -111,10 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // =================================================
-      // TEACHER
-      // =================================================
-
       if (userRole == "teacher") {
         Navigator.pushAndRemoveUntil(
           context,
@@ -126,10 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         return;
       }
-
-      // =================================================
-      // DRIVER
-      // =================================================
 
       if (userRole == "driver") {
         Navigator.pushAndRemoveUntil(
@@ -143,10 +110,6 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // =================================================
-      // PARENT
-      // =================================================
-
       if (userRole == "parent") {
         Navigator.pushAndRemoveUntil(
           context,
@@ -159,46 +122,70 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // =================================================
-      // UNKNOWN ROLE
-      // =================================================
-
       await authService.signOut();
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Unknown user role: $role",
-          ),
+          content: Text("Unknown user role: $role"),
         ),
       );
-    } on Exception catch (e) {
+    } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
-      String message = "Login failed.";
+      print("Firebase Auth Error");
+      print("Code: ${e.code}");
+      print("Message: ${e.message}");
 
-      final error = e.toString().toLowerCase();
+      String message;
 
-      if (error.contains("user-not-found")) {
-        message = "No account found with this email.";
-      } else if (error.contains("wrong-password") ||
-          error.contains("invalid-credential")) {
-        message = "Incorrect email or password.";
-      } else if (error.contains("invalid-email")) {
-        message = "Please enter a valid email address.";
-      } else if (error.contains("too-many-requests")) {
-        message = "Too many attempts. Please try again later.";
-      } else if (error.contains("network-request-failed")) {
-        message = "Please check your internet connection.";
-      } else {
-        message = "Login failed. Please try again.";
+      switch (e.code) {
+        case 'user-not-found':
+          message = "No account found with this email.";
+          break;
+
+        case 'wrong-password':
+          message = "Incorrect password.";
+          break;
+
+        case 'invalid-credential':
+          message = "Incorrect email or password.";
+          break;
+
+        case 'invalid-email':
+          message = "Please enter a valid email address.";
+          break;
+
+        case 'too-many-requests':
+          message = "Too many attempts. Please try again later.";
+          break;
+
+        case 'network-request-failed':
+          message = "Please check your internet connection.";
+          break;
+
+        case 'user-disabled':
+          message = "This account has been disabled.";
+          break;
+
+        default:
+          message = "Firebase Error: ${e.code}";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      print("Other Login Error: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
         ),
       );
     } finally {
@@ -210,39 +197,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // =====================================================
-  // DISPOSE
-  // =====================================================
-
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
-
     super.dispose();
   }
-
-  // =====================================================
-  // UI
-  // =====================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1565C0),
-
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-
             child: Column(
               children: [
-
-                // =================================================
-                // LOGO
-                // =================================================
-
                 const Icon(
                   Icons.school,
                   size: 90,
@@ -272,23 +243,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 35),
 
-                // =================================================
-                // LOGIN CARD
-                // =================================================
-
                 Card(
                   elevation: 8,
-
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-
                     child: Column(
                       children: [
-
                         const Text(
                           "Login",
                           style: TextStyle(
@@ -299,60 +262,34 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 25),
 
-                        // =================================================
-                        // EMAIL
-                        // =================================================
-
                         TextField(
                           controller: emailController,
-
-                          keyboardType:
-                          TextInputType.emailAddress,
-
-                          decoration:
-                          const InputDecoration(
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
                             labelText: "Email",
-                            prefixIcon:
-                            Icon(Icons.email),
-                            border:
-                            OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.email),
+                            border: OutlineInputBorder(),
                           ),
                         ),
 
                         const SizedBox(height: 18),
 
-                        // =================================================
-                        // PASSWORD
-                        // =================================================
-
                         TextField(
                           controller: passwordController,
-
-                          obscureText:
-                          obscurePassword,
-
-                          decoration:
-                          InputDecoration(
+                          obscureText: obscurePassword,
+                          decoration: InputDecoration(
                             labelText: "Password",
-
-                            prefixIcon:
-                            const Icon(Icons.lock),
-
-                            border:
-                            const OutlineInputBorder(),
-
-                            suffixIcon:
-                            IconButton(
+                            prefixIcon: const Icon(Icons.lock),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
                               icon: Icon(
                                 obscurePassword
                                     ? Icons.visibility
                                     : Icons.visibility_off,
                               ),
-
                               onPressed: () {
                                 setState(() {
-                                  obscurePassword =
-                                  !obscurePassword;
+                                  obscurePassword = !obscurePassword;
                                 });
                               },
                             ),
@@ -361,60 +298,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 25),
 
-                        // =================================================
-                        // LOGIN BUTTON
-                        // =================================================
-
                         SizedBox(
                           width: double.infinity,
                           height: 52,
-
-                          child:
-                          ElevatedButton(
-                            onPressed:
-                            isLoading
-                                ? null
-                                : login,
-
-                            style:
-                            ElevatedButton.styleFrom(
-                              backgroundColor:
-                              const Color(
-                                0xFF1565C0,
-                              ),
-
-                              foregroundColor:
-                              Colors.white,
-
-                              shape:
-                              RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius.circular(
-                                  12,
-                                ),
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-
                             child: isLoading
                                 ? const SizedBox(
                               height: 25,
                               width: 25,
-
-                              child:
-                              CircularProgressIndicator(
-                                color:
-                                Colors.white,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
                                 strokeWidth: 2,
                               ),
                             )
                                 : const Text(
                               "Login",
-
-                              style:
-                              TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
-                                fontWeight:
-                                FontWeight.bold,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),

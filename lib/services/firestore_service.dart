@@ -465,7 +465,7 @@ class FirestoreService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getStudentsOrdered() {
-    return _firestore.collection('students').orderBy('name').snapshots();
+    return _firestore.collection('students').snapshots();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getResults() {

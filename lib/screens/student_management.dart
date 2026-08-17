@@ -146,8 +146,23 @@ class _StudentManagementState extends State<StudentManagement> {
                     );
                   }
 
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          "Firestore Error:\n\n${snapshot.error}",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Center(
                       child: Text(
                         "No Students Found",
@@ -163,11 +178,11 @@ class _StudentManagementState extends State<StudentManagement> {
                     final student = doc.data();
 
 
-                    final name = student["name"]
+                    final name = (student["name"] ?? "")
                         .toString()
                         .toLowerCase();
 
-                    final studentClass = student["className"].toString().trim().toLowerCase();
+                    final studentClass = (student["className"] ?? "").toString().trim().toLowerCase();
 
                     final matchesSearch = name.contains(searchText);
 

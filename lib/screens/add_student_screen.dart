@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../services/firestore_service.dart';
 
 class AddStudentScreen extends StatefulWidget {
@@ -19,29 +20,28 @@ class AddStudentScreen extends StatefulWidget {
 class _AddStudentScreenState extends State<AddStudentScreen> {
   final FirestoreService firestoreService = FirestoreService();
 
-  final TextEditingController _nameController =
-  TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   String? selectedClass;
   String? selectedBusId;
   String? selectedParentId;
+
+  bool isSaving = false;
+
+  bool get isEditing => widget.studentId != null;
 
   @override
   void initState() {
     super.initState();
 
     if (widget.studentData != null) {
-      _nameController.text =
-          widget.studentData!["name"] ?? "";
+      final data = widget.studentData!;
 
-      selectedClass =
-      widget.studentData!["className"];
+      _nameController.text = data["name"]?.toString() ?? "";
 
-      selectedBusId =
-      widget.studentData!["busId"];
-
-      selectedParentId =
-      widget.studentData!["parentId"];
+      selectedClass = data["className"]?.toString();
+      selectedBusId = data["busId"]?.toString();
+      selectedParentId = data["parentId"]?.toString();
     }
   }
 
@@ -52,65 +52,94 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   }
 
   Future<void> saveStudent() async {
-    if (_nameController.text.trim().isEmpty ||
-        selectedClass == null ||
-        selectedBusId == null ||
-        selectedParentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
-        ),
-      );
+    if (isSaving) return;
+
+    final name = _nameController.text.trim();
+
+    if (name.isEmpty) {
+      _showMessage("Please enter student name");
       return;
     }
 
+    if (selectedClass == null || selectedClass!.isEmpty) {
+      _showMessage("Please select a class");
+      return;
+    }
+
+    if (selectedBusId == null || selectedBusId!.isEmpty) {
+      _showMessage("Please select a bus");
+      return;
+    }
+
+    if (selectedParentId == null || selectedParentId!.isEmpty) {
+      _showMessage("Please select a parent");
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
     try {
-      if (widget.studentId == null) {
-        await firestoreService.addStudent(
-          studentId:
-          DateTime.now().millisecondsSinceEpoch.toString(),
-          name: _nameController.text.trim(),
-          className: selectedClass!.trim(),
-          busId: selectedBusId!,
-          parentId: selectedParentId!,
-        );
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Student Added Successfully"),
-          ),
-        );
-      } else {
+      if (isEditing) {
         await firestoreService.updateStudent(
           studentId: widget.studentId!,
-          name: _nameController.text.trim(),
+          name: name,
           className: selectedClass!.trim(),
           busId: selectedBusId!,
           parentId: selectedParentId!,
         );
+      } else {
+        final studentId =
+        DateTime.now().millisecondsSinceEpoch.toString();
 
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Student Updated Successfully"),
-          ),
+        await firestoreService.addStudent(
+          studentId: studentId,
+          name: name,
+          className: selectedClass!.trim(),
+          busId: selectedBusId!,
+          parentId: selectedParentId!,
         );
       }
 
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEditing
+                ? "Student updated successfully"
+                : "Student added successfully",
+          ),
+        ),
+      );
+
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error: $e"),
+          content: Text(
+            "Failed to save student: $e",
+          ),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   @override
@@ -118,100 +147,88 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.studentId == null
-              ? "Add Student"
-              : "Edit Student",
+          isEditing ? "Edit Student" : "Add Student",
         ),
         backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
-            // =========================
-            // STUDENT NAME
-            // =========================
-
             TextField(
               controller: _nameController,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: "Student Name",
+                prefixIcon: Icon(Icons.person),
                 border: OutlineInputBorder(),
               ),
             ),
 
-            const SizedBox(height: 15),
-
-            // =========================
-            // CLASS
-            // =========================
+            const SizedBox(height: 18),
 
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getClasses(),
               builder: (context, snapshot) {
-
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LinearProgressIndicator();
                 }
 
                 if (snapshot.hasError) {
-                  return Text(
+                  return _errorBox(
                     "Error loading classes: ${snapshot.error}",
                   );
                 }
 
                 if (!snapshot.hasData ||
                     snapshot.data!.docs.isEmpty) {
-                  return const Text(
-                    "No Classes Found",
-                  );
+                  return _emptyBox("No classes found");
                 }
 
-                // Remove duplicate classes
-                final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
-                uniqueClasses = {};
+                final classNames = <String>[];
 
                 for (final doc in snapshot.data!.docs) {
                   final data = doc.data();
 
                   final className =
-                  "${data["className"] ?? ""} ${data["section"] ?? ""}"
-                      .trim();
+                      data["className"]?.toString().trim() ?? "";
 
-                  if (className.isNotEmpty) {
-                    uniqueClasses[className] = doc;
+                  final section =
+                      data["section"]?.toString().trim() ?? "";
+
+                  if (className.isEmpty) continue;
+
+                  final fullClass = section.isEmpty
+                      ? className
+                      : "$className $section";
+
+                  if (!classNames.contains(fullClass)) {
+                    classNames.add(fullClass);
                   }
                 }
 
-                final classNames =
-                uniqueClasses.keys.toList();
+                classNames.sort();
 
-                // Make sure selected value exists
-                final safeSelectedClass =
+                final safeValue =
                 classNames.contains(selectedClass)
                     ? selectedClass
                     : null;
 
                 return DropdownButtonFormField<String>(
-                  value: safeSelectedClass,
-
+                  value: safeValue,
                   decoration: const InputDecoration(
                     labelText: "Select Class",
+                    prefixIcon: Icon(Icons.school),
                     border: OutlineInputBorder(),
                   ),
-
                   items: classNames.map((className) {
                     return DropdownMenuItem<String>(
                       value: className,
                       child: Text(className),
                     );
                   }).toList(),
-
                   onChanged: (value) {
                     setState(() {
                       selectedClass = value;
@@ -221,76 +238,53 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
               },
             ),
 
-            const SizedBox(height: 15),
-
-            // =========================
-            // BUS
-            // =========================
+            const SizedBox(height: 18),
 
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getBusDropdown(),
               builder: (context, snapshot) {
-
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LinearProgressIndicator();
                 }
 
                 if (snapshot.hasError) {
-                  return Text(
+                  return _errorBox(
                     "Error loading buses: ${snapshot.error}",
                   );
                 }
 
                 if (!snapshot.hasData ||
                     snapshot.data!.docs.isEmpty) {
-                  return const Text(
-                    "No Buses Found",
-                  );
+                  return _emptyBox("No buses found");
                 }
 
                 final buses = snapshot.data!.docs;
 
-                // Remove duplicate bus IDs
-                final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
-                uniqueBuses = {};
-
-                for (final bus in buses) {
-                  uniqueBuses[bus.id] = bus;
-                }
-
-                final busList =
-                uniqueBuses.values.toList();
-
-                final safeSelectedBus =
-                busList.any(
+                final safeValue = buses.any(
                       (bus) => bus.id == selectedBusId,
                 )
                     ? selectedBusId
                     : null;
 
                 return DropdownButtonFormField<String>(
-                  value: safeSelectedBus,
-
+                  value: safeValue,
                   decoration: const InputDecoration(
                     labelText: "Select Bus",
+                    prefixIcon: Icon(Icons.directions_bus),
                     border: OutlineInputBorder(),
                   ),
-
-                  items: busList.map((bus) {
+                  items: buses.map((bus) {
                     final data = bus.data();
+
+                    final busNumber =
+                        data["busNumber"]?.toString() ??
+                            "Unknown Bus";
 
                     return DropdownMenuItem<String>(
                       value: bus.id,
-                      child: Text(
-                        data["busNumber"]?.toString() ??
-                            "Unknown Bus",
-                      ),
+                      child: Text(busNumber),
                     );
                   }).toList(),
-
                   onChanged: (value) {
                     setState(() {
                       selectedBusId = value;
@@ -300,75 +294,53 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
               },
             ),
 
-            const SizedBox(height: 15),
-
-            // =========================
-            // PARENT
-            // =========================
+            const SizedBox(height: 18),
 
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: firestoreService.getParentsDropdown(),
               builder: (context, snapshot) {
-
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LinearProgressIndicator();
                 }
 
                 if (snapshot.hasError) {
-                  return Text(
+                  return _errorBox(
                     "Error loading parents: ${snapshot.error}",
                   );
                 }
 
                 if (!snapshot.hasData ||
                     snapshot.data!.docs.isEmpty) {
-                  return const Text(
-                    "No Parents Found",
-                  );
+                  return _emptyBox("No parents found");
                 }
 
                 final parents = snapshot.data!.docs;
 
-                final Map<String, QueryDocumentSnapshot<Map<String, dynamic>>>
-                uniqueParents = {};
-
-                for (final parent in parents) {
-                  uniqueParents[parent.id] = parent;
-                }
-
-                final parentList =
-                uniqueParents.values.toList();
-
-                final safeSelectedParent =
-                parentList.any(
+                final safeValue = parents.any(
                       (parent) => parent.id == selectedParentId,
                 )
                     ? selectedParentId
                     : null;
 
                 return DropdownButtonFormField<String>(
-                  value: safeSelectedParent,
-
+                  value: safeValue,
                   decoration: const InputDecoration(
                     labelText: "Select Parent",
+                    prefixIcon: Icon(Icons.family_restroom),
                     border: OutlineInputBorder(),
                   ),
-
-                  items: parentList.map((parent) {
+                  items: parents.map((parent) {
                     final data = parent.data();
+
+                    final parentName =
+                        data["name"]?.toString() ??
+                            "Unknown Parent";
 
                     return DropdownMenuItem<String>(
                       value: parent.id,
-                      child: Text(
-                        data["name"]?.toString() ??
-                            "Unknown Parent",
-                      ),
+                      child: Text(parentName),
                     );
                   }).toList(),
-
                   onChanged: (value) {
                     setState(() {
                       selectedParentId = value;
@@ -380,37 +352,73 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
             const SizedBox(height: 30),
 
-            // =========================
-            // SAVE / UPDATE BUTTON
-            // =========================
-
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 52,
               child: ElevatedButton.icon(
-                icon: Icon(
-                  widget.studentId == null
-                      ? Icons.save
-                      : Icons.edit,
+                onPressed: isSaving ? null : saveStudent,
+                icon: isSaving
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : Icon(
+                  isEditing
+                      ? Icons.edit
+                      : Icons.save,
                 ),
-
                 label: Text(
-                  widget.studentId == null
-                      ? "Save Student"
-                      : "Update Student",
+                  isSaving
+                      ? "Saving..."
+                      : isEditing
+                      ? "Update Student"
+                      : "Save Student",
                 ),
-
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-
-                onPressed: saveStudent,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _errorBox(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: Colors.red.shade700,
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyBox(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(message),
     );
   }
 }
